@@ -320,28 +320,48 @@ class CriterioListView(LoginRequiredMixin, ListView):
     model = Criterio
     template_name = 'core/criterio_list.html'
     context_object_name = 'criterios'
-    ordering = ['codigo']
+    ordering = ['categoria__ordem', 'codigo']
 
     def get_context_data(self, **kwargs):
+        from apps.core.models import Categoria
+        from collections import defaultdict
+        
         context = super().get_context_data(**kwargs)
         context['total_criterios'] = Criterio.objects.count()
         context['criterios_ativos'] = Criterio.objects.filter(ativo=True).count()
+        
+        # Agrupar critérios por categoria
+        criterios_por_categoria = defaultdict(list)
+        for criterio in self.get_queryset().select_related('categoria'):
+            if criterio.categoria:
+                criterios_por_categoria[criterio.categoria].append(criterio)
+        
+        context['categorias'] = Categoria.objects.filter(ativo=True).order_by('ordem')
+        context['criterios_por_categoria'] = dict(criterios_por_categoria)
+        
         return context
+
 
 
 class CriterioCreateView(LoginRequiredMixin, TemplateView):
     template_name = 'core/criterio_form.html'
 
     def get_context_data(self, **kwargs):
+        from apps.core.models import Categoria
+        
         context = super().get_context_data(**kwargs)
         context['title'] = 'Novo Critério'
         context['button_text'] = 'Criar Critério'
+        context['categorias'] = Categoria.objects.filter(ativo=True).order_by('ordem')
         return context
 
     def post(self, request, *args, **kwargs):
+        from apps.core.models import Categoria
+        
         # Processar formulário
         descricao = request.POST.get('descricao', '').strip()
         codigo = request.POST.get('codigo', '').strip()
+        categoria_id = request.POST.get('categoria')
         pontos = request.POST.get('pontos', 10)
         peso = request.POST.get('peso', 1.0)
         ativo = request.POST.get('ativo') == 'on'
@@ -349,17 +369,26 @@ class CriterioCreateView(LoginRequiredMixin, TemplateView):
         if not descricao or not codigo:
             messages.error(request, 'Descrição e código são obrigatórios!')
             return redirect('criterio_create')
+        
+        if not categoria_id:
+            messages.error(request, 'Categoria é obrigatória!')
+            return redirect('criterio_create')
 
         try:
+            categoria = Categoria.objects.get(pk=categoria_id)
             Criterio.objects.create(
                 descricao=descricao,
                 codigo=codigo,
+                categoria=categoria,
                 pontos=int(pontos),
                 peso=float(peso),
                 ativo=ativo
             )
             messages.success(request, f'Critério "{descricao}" criado com sucesso!')
             return redirect('criterio_list')
+        except Categoria.DoesNotExist:
+            messages.error(request, 'Categoria inválida!')
+            return redirect('criterio_create')
         except Exception as e:
             messages.error(request, f'Erro ao criar critério: {str(e)}')
             return redirect('criterio_create')
@@ -369,21 +398,38 @@ class CriterioUpdateView(LoginRequiredMixin, TemplateView):
     template_name = 'core/criterio_form.html'
 
     def get_context_data(self, **kwargs):
+        from apps.core.models import Categoria
+        
         context = super().get_context_data(**kwargs)
         criterio = get_object_or_404(Criterio, pk=kwargs['pk'])
         context['criterio'] = criterio
         context['title'] = f'Editar Critério: {criterio.descricao}'
         context['button_text'] = 'Salvar Alterações'
+        context['categorias'] = Categoria.objects.filter(ativo=True).order_by('ordem')
         return context
 
     def post(self, request, *args, **kwargs):
+        from apps.core.models import Categoria
+        
         criterio = get_object_or_404(Criterio, pk=kwargs['pk'])
         
         # Atualizar campos
         criterio.descricao = request.POST.get('descricao', '').strip()
+        categoria_id = request.POST.get('categoria')
         criterio.pontos = int(request.POST.get('pontos', 10))
         criterio.peso = float(request.POST.get('peso', 1.0))
         criterio.ativo = request.POST.get('ativo') == 'on'
+        
+        if not criterio.descricao:
+            messages.error(request, 'Descrição é obrigatória!')
+            return redirect('criterio_update', pk=criterio.pk)
+        
+        if categoria_id:
+            try:
+                criterio.categoria = Categoria.objects.get(pk=categoria_id)
+            except Categoria.DoesNotExist:
+                messages.error(request, 'Categoria inválida!')
+                return redirect('criterio_update', pk=criterio.pk)
 
         try:
             criterio.save()
