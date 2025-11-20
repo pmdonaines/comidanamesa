@@ -469,8 +469,14 @@ class CriterioCreateView(LoginRequiredMixin, TemplateView):
         descricao = request.POST.get('descricao', '').strip()
         codigo = request.POST.get('codigo', '').strip()
         categoria_id = request.POST.get('categoria')
-        pontos = request.POST.get('pontos', 10)
-        peso = request.POST.get('peso', 1.0)
+        
+        # Campos numéricos com validação para strings vazias
+        pontos_str = request.POST.get('pontos', '').strip()
+        pontos = int(pontos_str) if pontos_str else 10
+        
+        peso_str = request.POST.get('peso', '').strip()
+        peso = float(peso_str) if peso_str else 1.0
+        
         ativo = request.POST.get('ativo') == 'on'
 
         if not descricao or not codigo:
@@ -484,11 +490,11 @@ class CriterioCreateView(LoginRequiredMixin, TemplateView):
         try:
             categoria = Categoria.objects.get(pk=categoria_id)
             # Condições Avançadas
-            idade_minima = request.POST.get('idade_minima')
-            idade_minima = int(idade_minima) if idade_minima else None
+            idade_minima_str = request.POST.get('idade_minima', '').strip()
+            idade_minima = int(idade_minima_str) if idade_minima_str else None
             
-            idade_maxima = request.POST.get('idade_maxima')
-            idade_maxima = int(idade_maxima) if idade_maxima else None
+            idade_maxima_str = request.POST.get('idade_maxima', '').strip()
+            idade_maxima = int(idade_maxima_str) if idade_maxima_str else None
             
             sexo_necessario = request.POST.get('sexo_necessario') or None
 
@@ -496,8 +502,8 @@ class CriterioCreateView(LoginRequiredMixin, TemplateView):
                 descricao=descricao,
                 codigo=codigo,
                 categoria=categoria,
-                pontos=int(pontos),
-                peso=float(peso),
+                pontos=pontos,
+                peso=peso,
                 ativo=ativo,
                 aplica_se_a_sem_criancas=request.POST.get('aplica_se_a_sem_criancas') == 'on',
                 aplica_se_a_rf_homem=request.POST.get('aplica_se_a_rf_homem') == 'on',
@@ -510,6 +516,9 @@ class CriterioCreateView(LoginRequiredMixin, TemplateView):
             return redirect('criterio_list')
         except Categoria.DoesNotExist:
             messages.error(request, 'Categoria inválida!')
+            return redirect('criterio_create')
+        except ValueError as e:
+            messages.error(request, f'Erro nos valores numéricos: {str(e)}')
             return redirect('criterio_create')
         except Exception as e:
             messages.error(request, f'Erro ao criar critério: {str(e)}')
@@ -538,25 +547,25 @@ class CriterioUpdateView(LoginRequiredMixin, TemplateView):
         # Atualizar campos
         criterio.descricao = request.POST.get('descricao', '').strip()
         categoria_id = request.POST.get('categoria')
-        criterio.pontos = int(request.POST.get('pontos', 10))
-        criterio.peso = float(request.POST.get('peso', 1.0))
+        
+        # Campos numéricos com validação para strings vazias
+        pontos_str = request.POST.get('pontos', '').strip()
+        criterio.pontos = int(pontos_str) if pontos_str else 10
+        
+        peso_str = request.POST.get('peso', '').strip()
+        criterio.peso = float(peso_str) if peso_str else 1.0
+        
         criterio.ativo = request.POST.get('ativo') == 'on'
         criterio.aplica_se_a_sem_criancas = request.POST.get('aplica_se_a_sem_criancas') == 'on'
         criterio.aplica_se_a_rf_homem = request.POST.get('aplica_se_a_rf_homem') == 'on'
         criterio.aplica_se_a_unipessoais = request.POST.get('aplica_se_a_unipessoais') == 'on'
         
         # Condições Avançadas
-        idade_minima = request.POST.get('idade_minima')
-        if idade_minima:
-            criterio.idade_minima = int(idade_minima)
-        else:
-            criterio.idade_minima = None
+        idade_minima_str = request.POST.get('idade_minima', '').strip()
+        criterio.idade_minima = int(idade_minima_str) if idade_minima_str else None
             
-        idade_maxima = request.POST.get('idade_maxima')
-        if idade_maxima:
-            criterio.idade_maxima = int(idade_maxima)
-        else:
-            criterio.idade_maxima = None
+        idade_maxima_str = request.POST.get('idade_maxima', '').strip()
+        criterio.idade_maxima = int(idade_maxima_str) if idade_maxima_str else None
             
         criterio.sexo_necessario = request.POST.get('sexo_necessario') or None
         
@@ -575,6 +584,9 @@ class CriterioUpdateView(LoginRequiredMixin, TemplateView):
             criterio.save()
             messages.success(request, f'Critério "{criterio.descricao}" atualizado com sucesso!')
             return redirect('criterio_list')
+        except ValueError as e:
+            messages.error(request, f'Erro nos valores numéricos: {str(e)}')
+            return redirect('criterio_update', pk=criterio.pk)
         except Exception as e:
             messages.error(request, f'Erro ao atualizar critério: {str(e)}')
             return redirect('criterio_update', pk=criterio.pk)
