@@ -23,27 +23,33 @@ class CriteriaAssociator:
             if criterio.id in existing_ids:
                 continue
                 
+            is_applicable = True
+            observacao = ""
+
             # Verificar condições
             
             # 1. Famílias sem crianças
             # Se o critério diz que NÃO se aplica a famílias sem crianças (aplica_se_a_sem_criancas=False)
-            # E a família NÃO tem crianças -> Ignorar
+            # E a família NÃO tem crianças -> Não aplicável
             if not criterio.aplica_se_a_sem_criancas and not has_children:
-                continue
+                is_applicable = False
+                observacao = "Não aplicável: Família sem crianças"
                 
             # 2. RF Homem
             # Se o critério diz que NÃO se aplica a RF homem (aplica_se_a_rf_homem=False)
-            # E o RF É homem -> Ignorar
-            if not criterio.aplica_se_a_rf_homem and is_rf_male:
-                continue
+            # E o RF É homem -> Não aplicável
+            elif not criterio.aplica_se_a_rf_homem and is_rf_male:
+                is_applicable = False
+                observacao = "Não aplicável: RF é homem"
                 
             # 3. Famílias Unipessoais
-            if not criterio.aplica_se_a_unipessoais and is_unipessoal:
-                continue
+            elif not criterio.aplica_se_a_unipessoais and is_unipessoal:
+                is_applicable = False
+                observacao = "Não aplicável: Família unipessoal"
                 
             # 4. Condições Avançadas (Idade/Sexo)
             # Se houver restrição de idade ou sexo, verificar se ALGUÉM na família atende
-            if criterio.idade_minima is not None or criterio.idade_maxima is not None or criterio.sexo_necessario:
+            elif criterio.idade_minima is not None or criterio.idade_maxima is not None or criterio.sexo_necessario:
                 has_matching_member = False
                 from datetime import date
                 today = date.today()
@@ -71,15 +77,18 @@ class CriteriaAssociator:
                         has_matching_member = True
                         break
                 
-                # Se nenhum membro atende às condições avançadas, pular critério
+                # Se nenhum membro atende às condições avançadas, não aplicável
                 if not has_matching_member:
-                    continue
+                    is_applicable = False
+                    observacao = "Não aplicável: Nenhum membro atende aos requisitos"
             
             to_create.append(
                 ValidacaoCriterio(
                     validacao=validacao,
                     criterio=criterio,
-                    atendido=False
+                    atendido=not is_applicable, # Se não aplicável, conta como atendido (pontuação máxima)
+                    aplicavel=is_applicable,
+                    observacao=observacao
                 )
             )
         

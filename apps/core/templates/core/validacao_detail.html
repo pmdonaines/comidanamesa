@@ -9,6 +9,7 @@
         showDetails: true, 
         activeTab: 'desenvolvimento_social',
         pontuacao: {{ validacao.pontuacao_total }},
+        pontuacaoDetalhada: {{ pontuacao_detalhada|safe }},
         showSaveSuccess: false,
         init() {
             // Initialize all category checkboxes on page load
@@ -34,6 +35,9 @@
     }"
     @auto-saved.window="
         pontuacao = $event.detail.pontuacao;
+        if ($event.detail.detalhes) {
+            pontuacaoDetalhada = $event.detail.detalhes;
+        }
         showSaveSuccess = true;
         setTimeout(() => showSaveSuccess = false, 2000);
     ">
@@ -198,36 +202,47 @@
                     </div>
 
                     <!-- Tabs Navigation -->
-                    <div class="border-b border-gray-200 mb-6">
-                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                    <div class="mb-6">
+                        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="Tabs">
                             {% for categoria in categorias %}
                             <button type="button"
                                 @click="activeTab = '{{ categoria.codigo }}'"
-                                :class="activeTab === '{{ categoria.codigo }}' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
-                                class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors">
-                                <span class="flex items-center gap-2">
+                                :class="activeTab === '{{ categoria.codigo }}' 
+                                    ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/50 text-emerald-700' 
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'"
+                                class="flex items-center justify-center gap-2 rounded-lg border px-2 py-2 text-xs sm:text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 h-full w-full">
+                                <span class="flex items-center justify-center gap-1.5 w-full">
                                     {% if categoria.codigo == 'desenvolvimento_social' %}
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                     </svg>
                                     {% elif categoria.codigo == 'saude' %}
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                                     </svg>
                                     {% elif categoria.codigo == 'educacao' %}
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"></path>
                                     </svg>
                                     {% elif categoria.codigo == 'documentacao' %}
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                     {% endif %}
-                                    <span>{{ categoria.nome }}</span>
-                                    <span class="ml-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                                        {{ criterios_por_categoria|dict_get:categoria|length|default:0 }}
+                                    
+                                    <span class="text-center leading-tight">
+                                        {% if categoria.codigo == 'desenvolvimento_social' %}
+                                            Desenv. Social
+                                        {% else %}
+                                            {{ categoria.nome }}
+                                        {% endif %}
+                                    </span>
+                                    
+                                    <span class="ml-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] sm:text-xs font-medium text-gray-600 flex-shrink-0 whitespace-nowrap"
+                                          x-text="(pontuacaoDetalhada['{{ categoria.id }}']?.efetivo || 0) + ' / 25'">
+                                        {{ pontuacao_detalhada|dict_get:categoria.id|dict_get:'efetivo'|default:0 }} / 25
                                     </span>
                                 </span>
                             </button>

@@ -190,14 +190,46 @@ class Validacao(models.Model):
     def calcular_pontuacao(self):
         """Calcula a pontuação total baseada nos critérios atendidos.
         
-        Fórmula: soma de (pontos * peso) para cada critério atendido.
+        Regra:
+        - Soma de (pontos * peso) por categoria.
+        - Cada categoria é limitada a 25 pontos.
+        - Soma final é a soma das pontuações das categorias (max 100).
         """
-        pontuacao = 0
-        for vc in self.criterios_avaliados.select_related('criterio').filter(atendido=True):
-            # Fórmula: pontos * peso
-            pontuacao += int(vc.criterio.pontos * float(vc.criterio.peso))
-        return pontuacao
+        pontuacao_por_categoria = {}
+        
+        for vc in self.criterios_avaliados.select_related('criterio', 'criterio__categoria').filter(atendido=True):
+            # Se não tiver categoria, usa um ID genérico (mas não deve acontecer)
+            cat_id = vc.criterio.categoria_id if vc.criterio.categoria_id else -1
+            
+            # Mantendo a lógica de truncar para int individualmente
+            pontos = int(vc.criterio.pontos * float(vc.criterio.peso))
+            
+            pontuacao_por_categoria[cat_id] = pontuacao_por_categoria.get(cat_id, 0) + pontos
+            
+        total = 0
+        for cat_id, pontos in pontuacao_por_categoria.items():
+            # Limitar a 25 pontos por categoria
+            total += min(pontos, 25)
+            
+        return total
     
+    def get_pontuacao_detalhada(self):
+        """Retorna detalhes da pontuação por categoria."""
+        pontuacao_por_categoria = {}
+        
+        for vc in self.criterios_avaliados.select_related('criterio', 'criterio__categoria').filter(atendido=True):
+            cat_id = vc.criterio.categoria_id if vc.criterio.categoria_id else -1
+            pontos = int(vc.criterio.pontos * float(vc.criterio.peso))
+            pontuacao_por_categoria[cat_id] = pontuacao_por_categoria.get(cat_id, 0) + pontos
+            
+        detalhes = {}
+        for cat_id, pontos in pontuacao_por_categoria.items():
+            detalhes[cat_id] = {
+                'total': pontos,
+                'efetivo': min(pontos, 25)
+            }
+        return detalhes
+
     def atualizar_pontuacao(self):
         """Atualiza o campo pontuacao_total com o cálculo atual e persiste no banco."""
         self.pontuacao_total = self.calcular_pontuacao()
@@ -208,6 +240,7 @@ class ValidacaoCriterio(models.Model):
     validacao = models.ForeignKey(Validacao, on_delete=models.CASCADE, related_name="criterios_avaliados")
     criterio = models.ForeignKey(Criterio, on_delete=models.PROTECT)
     atendido = models.BooleanField("Atendido", default=False)
+    aplicavel = models.BooleanField("Aplicável", default=True)
     observacao = models.CharField("Observação", max_length=255, blank=True)
     
     # Referência ao documento que comprova o critério

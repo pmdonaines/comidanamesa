@@ -17,9 +17,9 @@ def status_badge_color(status):
 @register.filter
 def dict_get(dictionary, key):
     """Get value from dictionary by key - works with objects as keys."""
-    if dictionary is None:
-        return []
-    return dictionary.get(key, [])
+    if dictionary is None or not hasattr(dictionary, 'get'):
+        return None
+    return dictionary.get(key)
 
 
 @register.filter

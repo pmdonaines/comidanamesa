@@ -99,7 +99,8 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
         
         # Garantir que os critérios estejam associados (Lazy Loading)
         from apps.core.services.criteria_logic import CriteriaAssociator
-        CriteriaAssociator.associate_criteria(self.object)
+        if CriteriaAssociator.associate_criteria(self.object) > 0:
+            self.object.atualizar_pontuacao()
         
         # Se está disponível, iniciar/renovar a avaliação
         self.object.iniciar_avaliacao(request.user)
@@ -116,7 +117,8 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
         
         # Buscar todos os critérios avaliados
         criterios_avaliados = ValidacaoCriterio.objects.filter(
-            validacao=self.object
+            validacao=self.object,
+            aplicavel=True  # Apenas mostrar critérios aplicáveis na interface
         ).select_related('criterio', 'criterio__categoria').order_by('criterio__categoria__ordem', 'criterio__codigo')
         
         # Agrupar por categoria
@@ -129,6 +131,9 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
         context['categorias'] = Categoria.objects.filter(ativo=True).order_by('ordem').prefetch_related('criterios')
         context['criterios_por_categoria'] = dict(criterios_por_categoria)
         context['criterios'] = criterios_avaliados  # Manter para compatibilidade
+        
+        # Pontuação detalhada
+        context['pontuacao_detalhada'] = self.object.get_pontuacao_detalhada()
         
         # Adicionar Responsável Familiar ao contexto
         context['responsavel_familiar'] = self.object.familia.get_responsavel_familiar()
@@ -169,7 +174,10 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
             
             # Primeiro, resetar todos os critérios para atendido=False
             # (checkboxes desmarcados não enviam dados no POST)
-            ValidacaoCriterio.objects.filter(validacao=self.object).update(atendido=False)
+            # Primeiro, resetar apenas os critérios APLICÁVEIS para atendido=False
+            # (checkboxes desmarcados não enviam dados no POST)
+            # Critérios não aplicáveis devem permanecer como atendido=True (pontuação automática)
+            ValidacaoCriterio.objects.filter(validacao=self.object, aplicavel=True).update(atendido=False)
             
             # Depois, marcar como atendido=True apenas os critérios que foram marcados
             for key, value in request.POST.items():
@@ -201,7 +209,8 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
                     response = HttpResponse(status=204)
                     response['HX-Trigger'] = json.dumps({
                         'autoSaved': {
-                            'pontuacao': self.object.pontuacao_total
+                            'pontuacao': self.object.pontuacao_total,
+                            'detalhes': self.object.get_pontuacao_detalhada()
                         }
                     })
                     return response
@@ -341,7 +350,8 @@ class ValidacaoViewOnlyView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['criterios'] = ValidacaoCriterio.objects.filter(
-            validacao=self.object
+            validacao=self.object,
+            aplicavel=True
         ).select_related('criterio').order_by('criterio__codigo')
         
         # Adicionar Responsável Familiar ao contexto
