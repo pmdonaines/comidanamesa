@@ -97,6 +97,10 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
             )
             return redirect('fila_validacao')
         
+        # Garantir que os critérios estejam associados (Lazy Loading)
+        from apps.core.services.criteria_logic import CriteriaAssociator
+        CriteriaAssociator.associate_criteria(self.object)
+        
         # Se está disponível, iniciar/renovar a avaliação
         self.object.iniciar_avaliacao(request.user)
         
@@ -485,7 +489,10 @@ class CriterioCreateView(LoginRequiredMixin, TemplateView):
                 categoria=categoria,
                 pontos=int(pontos),
                 peso=float(peso),
-                ativo=ativo
+                ativo=ativo,
+                aplica_se_a_sem_criancas=request.POST.get('aplica_se_a_sem_criancas') == 'on',
+                aplica_se_a_rf_homem=request.POST.get('aplica_se_a_rf_homem') == 'on',
+                aplica_se_a_unipessoais=request.POST.get('aplica_se_a_unipessoais') == 'on'
             )
             messages.success(request, f'Critério "{descricao}" criado com sucesso!')
             return redirect('criterio_list')
@@ -522,6 +529,9 @@ class CriterioUpdateView(LoginRequiredMixin, TemplateView):
         criterio.pontos = int(request.POST.get('pontos', 10))
         criterio.peso = float(request.POST.get('peso', 1.0))
         criterio.ativo = request.POST.get('ativo') == 'on'
+        criterio.aplica_se_a_sem_criancas = request.POST.get('aplica_se_a_sem_criancas') == 'on'
+        criterio.aplica_se_a_rf_homem = request.POST.get('aplica_se_a_rf_homem') == 'on'
+        criterio.aplica_se_a_unipessoais = request.POST.get('aplica_se_a_unipessoais') == 'on'
         
         if not criterio.descricao:
             messages.error(request, 'Descrição é obrigatória!')

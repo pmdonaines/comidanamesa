@@ -109,6 +109,7 @@ class CecadImporter:
                     'nom_pessoa': row.get('p.nom_pessoa', ''),
                     'num_cpf_pessoa': cpf,
                     'dat_nasc_pessoa': self._parse_date(row.get('p.dta_nasc_pessoa')),
+                    'cod_sexo_pessoa': row.get('p.cod_sexo_pessoa', '2'),
                     'cod_parentesco_rf_pessoa': self._parse_int(row.get('p.cod_parentesco_rf_pessoa')) or 1,
                     'cod_curso_frequentou_pessoa_membro': self._parse_int(row.get('p.cod_curso_frequentou_pessoa_memb')),
                     'cod_ano_serie_frequentou_pessoa_membro': self._parse_int(row.get('p.cod_ano_serie_frequentou_memb')),

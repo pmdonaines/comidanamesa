@@ -68,12 +68,12 @@
                                     <div class="flex flex-1 items-center">
                                         <div class="flex-shrink-0">
                                             <div class="flex h-10 w-10 items-center justify-center rounded-lg
-                                                {% if cat.codigo == 'assistencia_social' %}bg-blue-100
+                                                {% if cat.codigo == 'desenvolvimento_social' %}bg-blue-100
                                                 {% elif cat.codigo == 'saude' %}bg-red-100
                                                 {% elif cat.codigo == 'educacao' %}bg-purple-100
                                                 {% elif cat.codigo == 'documentacao' %}bg-gray-200
                                                 {% endif %}">
-                                                {% if cat.codigo == 'assistencia_social' %}
+                                                {% if cat.codigo == 'desenvolvimento_social' %}
                                                 <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                                 </svg>
@@ -207,7 +207,58 @@
                 </div>
             </div>
 
-            <!-- Section 3: Status -->
+            <!-- Section 3: Condições de Aplicação -->
+            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="border-b border-gray-200 pb-4 mb-6">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900">Condições de Aplicação</h3>
+                        <p class="mt-1 text-sm text-gray-500">Defina quando este critério deve ser aplicado. Se a condição não for atendida, o critério será ignorado.</p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Aplica-se a famílias sem crianças -->
+                        <div class="relative flex items-start">
+                            <div class="flex h-6 items-center">
+                                <input id="aplica_se_a_sem_criancas" name="aplica_se_a_sem_criancas" type="checkbox"
+                                    {% if not criterio or criterio.aplica_se_a_sem_criancas %}checked{% endif %}
+                                    class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
+                            </div>
+                            <div class="ml-3 text-sm leading-6">
+                                <label for="aplica_se_a_sem_criancas" class="font-medium text-gray-900">Aplica-se a famílias sem crianças?</label>
+                                <p class="text-gray-500">Se desmarcado, este critério NÃO será exigido para famílias que não possuem crianças (menores de 18 anos).</p>
+                            </div>
+                        </div>
+
+                        <!-- Aplica-se a RF homem -->
+                        <div class="relative flex items-start">
+                            <div class="flex h-6 items-center">
+                                <input id="aplica_se_a_rf_homem" name="aplica_se_a_rf_homem" type="checkbox"
+                                    {% if not criterio or criterio.aplica_se_a_rf_homem %}checked{% endif %}
+                                    class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
+                            </div>
+                            <div class="ml-3 text-sm leading-6">
+                                <label for="aplica_se_a_rf_homem" class="font-medium text-gray-900">Aplica-se a RF homem?</label>
+                                <p class="text-gray-500">Se desmarcado, este critério NÃO será exigido se o Responsável Familiar for do sexo masculino.</p>
+                            </div>
+                        </div>
+
+                        <!-- Aplica-se a famílias unipessoais -->
+                        <div class="relative flex items-start">
+                            <div class="flex h-6 items-center">
+                                <input id="aplica_se_a_unipessoais" name="aplica_se_a_unipessoais" type="checkbox"
+                                    {% if not criterio or criterio.aplica_se_a_unipessoais %}checked{% endif %}
+                                    class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
+                            </div>
+                            <div class="ml-3 text-sm leading-6">
+                                <label for="aplica_se_a_unipessoais" class="font-medium text-gray-900">Aplica-se a famílias unipessoais?</label>
+                                <p class="text-gray-500">Se desmarcado, este critério NÃO será exigido para famílias compostas por apenas uma pessoa.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 4: Status -->
             <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-start">

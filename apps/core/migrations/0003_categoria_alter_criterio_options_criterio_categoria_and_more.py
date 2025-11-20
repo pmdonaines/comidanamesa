@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                     "codigo",
                     models.CharField(
                         choices=[
-                            ("assistencia_social", "Assistência Social"),
+                            ("desenvolvimento_social", "Desenvolvimento Social"),
                             ("saude", "Saúde"),
                             ("educacao", "Educação"),
                             ("documentacao", "Documentação"),

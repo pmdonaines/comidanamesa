@@ -10,11 +10,27 @@ def associar_criterio_a_validacoes(sender, instance, created, **kwargs):
     """
     if created and instance.ativo:
         # Buscar todas as validações que não possuem este critério
-        validacoes = Validacao.objects.all()
+        # Otimizar queries para verificar condições
+        validacoes = Validacao.objects.select_related('familia').prefetch_related('familia__membros').all()
         
         # Criar associações em massa
         associacoes = []
         for validacao in validacoes:
+            # Verificar condições de aplicação
+            familia = validacao.familia
+            
+            # 1. Famílias sem crianças
+            if not instance.aplica_se_a_sem_criancas and not familia.tem_criancas():
+                continue
+                
+            # 2. RF Homem
+            if not instance.aplica_se_a_rf_homem and familia.is_rf_homem():
+                continue
+                
+            # 3. Famílias Unipessoais
+            if not instance.aplica_se_a_unipessoais and familia.is_unipessoal():
+                continue
+            
             # Verificar se já existe para evitar duplicação
             if not ValidacaoCriterio.objects.filter(validacao=validacao, criterio=instance).exists():
                 associacoes.append(

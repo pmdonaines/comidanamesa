@@ -7,8 +7,8 @@ class Command(BaseCommand):
 
     CATEGORIAS = [
         {
-            'codigo': 'assistencia_social',
-            'nome': 'Assistência Social',
+            'codigo': 'desenvolvimento_social',
+            'nome': 'Desenvolvimento Social',
             'descricao': 'Critérios relacionados à renda e cadastros sociais',
             'ordem': 1,
             'icone': 'users',
@@ -41,10 +41,10 @@ class Command(BaseCommand):
     ]
 
     CRITERIOS_INICIAIS = [
-        # Assistência Social
+        # Desenvolvimento Social
         {
             'codigo': 'renda_familiar',
-            'categoria_codigo': 'assistencia_social',
+            'categoria_codigo': 'desenvolvimento_social',
             'descricao': 'Famílias em extrema vulnerabilidade social com renda per capita de até R$ 218,00',
             'pontos': 15,
             'peso': 2.0,
@@ -52,7 +52,7 @@ class Command(BaseCommand):
         },
         {
             'codigo': 'cadastro_unico',
-            'categoria_codigo': 'assistencia_social',
+            'categoria_codigo': 'desenvolvimento_social',
             'descricao': 'Cadastro Único do município de Dona Inês/PB atualizado nos últimos 2 anos',
             'pontos': 10,
             'peso': 1.5,

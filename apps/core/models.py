@@ -7,7 +7,7 @@ class Categoria(models.Model):
     """Categorias temáticas para agrupar critérios de validação."""
     
     CODIGO_CHOICES = [
-        ('assistencia_social', 'Assistência Social'),
+        ('desenvolvimento_social', 'Desenvolvimento Social'),
         ('saude', 'Saúde'),
         ('educacao', 'Educação'),
         ('documentacao', 'Documentação'),
@@ -53,6 +53,23 @@ class Criterio(models.Model):
     ativo = models.BooleanField("Ativo", default=True)
     pontos = models.IntegerField("Pontos", default=10)
     peso = models.DecimalField("Peso", max_digits=4, decimal_places=2, default=1.0)
+    
+    # Condições de Aplicação
+    aplica_se_a_sem_criancas = models.BooleanField(
+        "Aplica-se a famílias sem crianças?", 
+        default=True,
+        help_text="Se desmarcado, este critério será ignorado para famílias que não possuem crianças (menores de 18 anos)."
+    )
+    aplica_se_a_rf_homem = models.BooleanField(
+        "Aplica-se a RF homem?", 
+        default=True,
+        help_text="Se desmarcado, este critério será ignorado se o Responsável Familiar for homem."
+    )
+    aplica_se_a_unipessoais = models.BooleanField(
+        "Aplica-se a famílias unipessoais?", 
+        default=True,
+        help_text="Se desmarcado, este critério será ignorado para famílias de uma única pessoa."
+    )
     
     class Meta:
         verbose_name = "Critério"

@@ -51,6 +51,32 @@ class Familia(models.Model):
     def __str__(self):
         return f"{self.cod_familiar_fam} - Renda: {self.vlr_renda_media_fam}"
 
+    def tem_criancas(self):
+        """Verifica se a família possui crianças/adolescentes (menores de 18 anos)."""
+        from datetime import date
+        today = date.today()
+        
+        # Buscar membros com data de nascimento
+        for membro in self.membros.all():
+            if membro.dat_nasc_pessoa:
+                age = today.year - membro.dat_nasc_pessoa.year - (
+                    (today.month, today.day) < (membro.dat_nasc_pessoa.month, membro.dat_nasc_pessoa.day)
+                )
+                if age < 18:
+                    return True
+        return False
+
+    def is_rf_homem(self):
+        """Verifica se o Responsável Familiar é do sexo masculino."""
+        rf = self.membros.filter(cod_parentesco_rf_pessoa=1).first()
+        if rf and rf.cod_sexo_pessoa == '1':
+            return True
+        return False
+
+    def is_unipessoal(self):
+        """Verifica se é uma família unipessoal."""
+        return self.qtde_pessoas == 1 or self.membros.count() == 1
+
 
 class Pessoa(models.Model):
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name="membros")
@@ -71,6 +97,8 @@ class Pessoa(models.Model):
         (10, "Outros Parentes"),
         (11, "Não Parente"),
     ], default=1)
+    
+    cod_sexo_pessoa = models.CharField("Sexo", max_length=1, choices=[('1', 'Masculino'), ('2', 'Feminino')], default='2')
     
     # Dados Escolares
     cod_curso_frequentou_pessoa_membro = models.IntegerField("Curso Frequentado", null=True, blank=True)
