@@ -2,7 +2,8 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from apps.core.views import (
     home, DashboardView, FilaValidacaoView, ValidacaoDetailView, ValidacaoViewOnlyView, RelatoriosView,
-    CriterioListView, CriterioCreateView, CriterioUpdateView, CriterioDeleteView
+    CriterioListView, CriterioCreateView, CriterioUpdateView, CriterioDeleteView, ConfiguracaoView,
+    ListaAprovadosView
 )
 
 urlpatterns = [
@@ -10,8 +11,12 @@ urlpatterns = [
     path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('fila/', FilaValidacaoView.as_view(), name='fila_validacao'),
     path('relatorios/', RelatoriosView.as_view(), name='relatorios'),
+    path('aprovados/', ListaAprovadosView.as_view(), name='lista_aprovados'),
     path('validacao/<int:pk>/', ValidacaoDetailView.as_view(), name='validacao_detail'),
     path('validacao/<int:pk>/visualizar/', ValidacaoViewOnlyView.as_view(), name='validacao_view'),
+    
+    # Configuração
+    path('configuracao/', ConfiguracaoView.as_view(), name='configuracao'),
     
     # Gestão de Critérios
     path('criterios/', CriterioListView.as_view(), name='criterio_list'),

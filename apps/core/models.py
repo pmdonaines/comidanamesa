@@ -261,3 +261,40 @@ class DocumentoValidacao(models.Model):
 
     def __str__(self):
         return f"{self.tipo} - {self.validacao.familia}"
+
+
+class Configuracao(models.Model):
+    """Configurações globais do sistema (Singleton)."""
+    
+    pontuacao_minima_aprovacao = models.IntegerField(
+        "Pontuação Mínima para Aprovação", 
+        default=50,
+        help_text="Pontuação mínima necessária para que uma validação seja aprovada."
+    )
+    
+    quantidade_vagas = models.IntegerField(
+        "Quantidade de Vagas",
+        default=1000,
+        help_text="Número total de vagas disponíveis para o benefício."
+    )
+    
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Configuração"
+        verbose_name_plural = "Configurações"
+        
+    def __str__(self):
+        return "Configuração do Sistema"
+
+    def save(self, *args, **kwargs):
+        # Garantir que só exista um objeto
+        if not self.pk and Configuracao.objects.exists():
+            # Se já existe, atualiza o primeiro
+            self.pk = Configuracao.objects.first().pk
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj

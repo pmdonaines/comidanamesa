@@ -59,7 +59,11 @@
 
                         <div class="pt-4 border-t border-gray-100">
                             <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Composição Familiar</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ validacao.familia.qtde_pessoas }} pessoas</dd>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                {{ validacao.familia.membros.count }} pessoas
+                                <span class="text-gray-400 mx-1">|</span>
+                                {{ qtde_familias_domicilio }} família(s) no domicílio
+                            </dd>
                         </div>
                     </dl>
 

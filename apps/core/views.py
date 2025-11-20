@@ -126,6 +126,14 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
         context['criterios_por_categoria'] = dict(criterios_por_categoria)
         context['criterios'] = criterios_avaliados  # Manter para compatibilidade
         
+        # Calcular quantidade de famílias no domicílio
+        # Domicílio é identificado pelos primeiros 8 dígitos do código familiar
+        cod_domicilio = self.object.familia.cod_familiar_fam[:8]
+        context['qtde_familias_domicilio'] = Familia.objects.filter(
+            import_batch=self.object.familia.import_batch,
+            cod_familiar_fam__startswith=cod_domicilio
+        ).count()
+        
         return context
 
 
@@ -180,8 +188,11 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
                     atendido=True
                 ).count()
                 
-                # Lógica: se TODOS os critérios foram atendidos = aprovado, senão = reprovado
-                if criterios_atendidos == total_criterios and total_criterios > 0:
+                # Lógica: se a pontuação total >= pontuação mínima configurada
+                from apps.core.models import Configuracao
+                config = Configuracao.get_solo()
+                
+                if self.object.pontuacao_total >= config.pontuacao_minima_aprovacao:
                     self.object.status = 'aprovado'
                 else:
                     self.object.status = 'reprovado'
@@ -196,13 +207,97 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
                 messages.success(
                     request, 
                     f'Validação finalizada como {self.object.get_status_display()}! '
-                    f'Pontuação final: {self.object.pontuacao_total} pontos.'
+                    f'Pontuação final: {self.object.pontuacao_total} pontos. '
+                    f'(Mínimo necessário: {config.pontuacao_minima_aprovacao})'
                 )
                 
                 # Redirecionar para fila após finalizar
                 return redirect('fila_validacao')
         
         return redirect('validacao_detail', pk=self.object.pk)
+
+
+class ConfiguracaoView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/configuracao.html'
+    
+    def get_context_data(self, **kwargs):
+        from apps.core.forms import ConfiguracaoForm
+        from apps.core.models import Configuracao
+        
+        context = super().get_context_data(**kwargs)
+        config = Configuracao.get_solo()
+        context['form'] = ConfiguracaoForm(instance=config)
+        context['config'] = config
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        from apps.core.forms import ConfiguracaoForm
+        from apps.core.models import Configuracao, Validacao
+        
+        config = Configuracao.get_solo()
+        form = ConfiguracaoForm(request.POST, instance=config)
+        
+        if form.is_valid():
+            new_config = form.save()
+            new_min_score = new_config.pontuacao_minima_aprovacao
+            
+            # Reavaliar validações existentes
+            # 1. Downgrade: Aprovados que agora estão abaixo do mínimo
+            downgraded = Validacao.objects.filter(
+                status='aprovado', 
+                pontuacao_total__lt=new_min_score
+            ).update(status='reprovado')
+            
+            # 2. Upgrade: Reprovados que agora atingem o mínimo
+            upgraded = Validacao.objects.filter(
+                status='reprovado', 
+                pontuacao_total__gte=new_min_score
+            ).update(status='aprovado')
+            
+            msg = 'Configurações atualizadas com sucesso!'
+            if downgraded > 0 or upgraded > 0:
+                msg += f' Reavaliação: {downgraded} reprovados e {upgraded} aprovados pelo novo critério.'
+            
+            messages.success(request, msg)
+            return redirect('configuracao')
+        
+        context = self.get_context_data()
+        context['form'] = form
+        return render(request, self.template_name, context)
+
+
+class ListaAprovadosView(LoginRequiredMixin, ListView):
+    model = Validacao
+    template_name = 'core/lista_aprovados.html'
+    context_object_name = 'aprovados'
+    paginate_by = 50
+
+    def get_queryset(self):
+        # Filter by latest batch by default
+        latest_batch = ImportBatch.objects.filter(status='completed').order_by('-imported_at').first()
+        if not latest_batch:
+            return Validacao.objects.none()
+
+        return Validacao.objects.select_related('familia').filter(
+            familia__import_batch=latest_batch,
+            status='aprovado'
+        ).order_by('-pontuacao_total', 'familia__cod_familiar_fam')
+
+    def get_context_data(self, **kwargs):
+        from apps.core.models import Configuracao
+        
+        context = super().get_context_data(**kwargs)
+        config = Configuracao.get_solo()
+        
+        # Calculate rank offset for pagination
+        page = context.get('page_obj')
+        start_rank = (page.number - 1) * self.paginate_by + 1 if page else 1
+        
+        context['start_rank'] = start_rank
+        context['vagas_disponiveis'] = config.quantidade_vagas
+        context['total_aprovados'] = self.get_queryset().count()
+        
+        return context
 
 
 class ValidacaoViewOnlyView(LoginRequiredMixin, DetailView):
@@ -216,6 +311,14 @@ class ValidacaoViewOnlyView(LoginRequiredMixin, DetailView):
         context['criterios'] = ValidacaoCriterio.objects.filter(
             validacao=self.object
         ).select_related('criterio').order_by('criterio__codigo')
+        
+        # Calcular quantidade de famílias no domicílio
+        cod_domicilio = self.object.familia.cod_familiar_fam[:8]
+        context['qtde_familias_domicilio'] = Familia.objects.filter(
+            import_batch=self.object.familia.import_batch,
+            cod_familiar_fam__startswith=cod_domicilio
+        ).count()
+        
         return context
 
 
