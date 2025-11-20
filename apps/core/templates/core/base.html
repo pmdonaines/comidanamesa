@@ -15,6 +15,7 @@
 
 	<!-- Tailwind output -->
 	<link rel="stylesheet" href="{% static 'tailwindcss/output.css' %}">
+	<link rel="stylesheet" href="{% static 'core/css/styles.css' %}">	
 
 	<style>
 		body {
@@ -58,7 +59,7 @@
 			<!-- Sidebar component for mobile -->
 			<div class="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
 				<div class="flex h-16 shrink-0 items-center gap-2 border-b border-gray-100">
-					<img class="h-8 w-auto" src="{% static 'core/logo.png' %}" alt="Comida na Mesa">
+					<img class="h-8 w-auto" src="{% static 'core/img/logo.png' %}" alt="Comida na Mesa">
 					<span class="font-bold text-gray-900 tracking-tight">Comida na Mesa</span>
 				</div>
 				<nav class="flex flex-1 flex-col">
@@ -153,7 +154,7 @@
 	<div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
 		<div class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
 			<div class="flex h-16 shrink-0 items-center gap-2 border-b border-gray-100 mb-4">
-				<img class="h-8 w-auto" src="{% static 'core/logo.png' %}" alt="Comida na Mesa">
+				<img class="h-8 w-auto" src="{% static 'core/img/logo.png' %}" alt="Comida na Mesa">
 				<span class="font-bold text-gray-900 tracking-tight text-lg">Comida na Mesa</span>
 			</div>
 			<nav class="flex flex-1 flex-col">
