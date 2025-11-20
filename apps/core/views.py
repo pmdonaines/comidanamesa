@@ -130,6 +130,13 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
         context['criterios_por_categoria'] = dict(criterios_por_categoria)
         context['criterios'] = criterios_avaliados  # Manter para compatibilidade
         
+        # Adicionar Responsável Familiar ao contexto
+        context['responsavel_familiar'] = self.object.familia.get_responsavel_familiar()
+        context['sem_rf'] = not context['responsavel_familiar']
+        
+        # Membros ordenados (RF primeiro)
+        context['membros_ordenados'] = self.object.familia.membros.all().order_by('cod_parentesco_rf_pessoa', 'nom_pessoa')
+        
         # Calcular quantidade de famílias no domicílio
         # Domicílio é identificado pelos primeiros 8 dígitos do código familiar
         cod_domicilio = self.object.familia.cod_familiar_fam[:8]
@@ -316,6 +323,13 @@ class ValidacaoViewOnlyView(LoginRequiredMixin, DetailView):
             validacao=self.object
         ).select_related('criterio').order_by('criterio__codigo')
         
+        # Adicionar Responsável Familiar ao contexto
+        context['responsavel_familiar'] = self.object.familia.get_responsavel_familiar()
+        context['sem_rf'] = not context['responsavel_familiar']
+        
+        # Membros ordenados (RF primeiro)
+        context['membros_ordenados'] = self.object.familia.membros.all().order_by('cod_parentesco_rf_pessoa', 'nom_pessoa')
+        
         # Calcular quantidade de famílias no domicílio
         cod_domicilio = self.object.familia.cod_familiar_fam[:8]
         context['qtde_familias_domicilio'] = Familia.objects.filter(
@@ -348,9 +362,13 @@ class RelatoriosView(LoginRequiredMixin, ListView):
             queryset = queryset.filter(status=status)
         
         # Filter by score
-        min_score = self.request.GET.get('min_score')
+        min_score = self.request.GET.get('min_score', '').strip()
         if min_score:
-            queryset = queryset.filter(pontuacao_total__gte=int(min_score))
+            try:
+                queryset = queryset.filter(pontuacao_total__gte=int(min_score))
+            except ValueError:
+                # Ignore invalid min_score values
+                pass
         
         return queryset.order_by('-pontuacao_total', 'familia__cod_familiar_fam')
 

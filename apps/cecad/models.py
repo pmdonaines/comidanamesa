@@ -77,6 +77,15 @@ class Familia(models.Model):
         """Verifica se é uma família unipessoal."""
         return self.qtde_pessoas == 1 or self.membros.count() == 1
 
+    def get_responsavel_familiar(self):
+        """Retorna o Responsável Familiar (cod_parentesco_rf_pessoa=1) ou None."""
+        return self.membros.filter(cod_parentesco_rf_pessoa=1).first()
+    
+    @property
+    def responsavel_familiar(self):
+        """Propriedade para acesso fácil ao Responsável Familiar."""
+        return self.get_responsavel_familiar()
+
 
 class Pessoa(models.Model):
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name="membros")
