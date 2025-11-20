@@ -50,7 +50,6 @@ class Familia(models.Model):
 
 
 class Pessoa(models.Model):
-    import_batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name="pessoas", verbose_name="Lote de Importação", null=True)
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name="membros")
     num_nis_pessoa_atual = models.CharField("NIS", max_length=11)
     nom_pessoa = models.CharField("Nome", max_length=255)
@@ -80,14 +79,18 @@ class Pessoa(models.Model):
     class Meta:
         verbose_name = "Pessoa"
         verbose_name_plural = "Pessoas"
-        unique_together = ['num_nis_pessoa_atual', 'import_batch']
+        unique_together = ['num_nis_pessoa_atual', 'familia']
 
     def __str__(self):
         return f"{self.nom_pessoa} ({self.num_nis_pessoa_atual})"
+    
+    @property
+    def import_batch(self):
+        """Acesso transitivo ao import_batch via familia."""
+        return self.familia.import_batch if self.familia else None
 
 
 class Beneficio(models.Model):
-    import_batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name="beneficios", verbose_name="Lote de Importação", null=True)
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name="beneficios")
     tipo_beneficio = models.CharField("Tipo de Benefício", max_length=100)
     valor = models.DecimalField("Valor", max_digits=10, decimal_places=2)
@@ -99,3 +102,8 @@ class Beneficio(models.Model):
 
     def __str__(self):
         return f"{self.tipo_beneficio} - {self.valor}"
+    
+    @property
+    def import_batch(self):
+        """Acesso transitivo ao import_batch via familia."""
+        return self.familia.import_batch if self.familia else None

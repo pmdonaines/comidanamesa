@@ -19,7 +19,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         
         if latest_batch:
             context['total_familias'] = Familia.objects.filter(import_batch=latest_batch).count()
-            context['total_pessoas'] = Pessoa.objects.filter(import_batch=latest_batch).count()
+            context['total_pessoas'] = Pessoa.objects.filter(familia__import_batch=latest_batch).count()
             context['familias_pbf'] = Familia.objects.filter(import_batch=latest_batch, marc_pbf=True).count()
             context['renda_media_geral'] = Familia.objects.filter(import_batch=latest_batch).aggregate(Avg('vlr_renda_media_fam'))['vlr_renda_media_fam__avg'] or 0
         else:
@@ -86,7 +86,7 @@ class ImportBatchDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         batch = self.object
         context['total_familias'] = batch.familias.count()
-        context['total_pessoas'] = batch.pessoas.count()
+        context['total_pessoas'] = Pessoa.objects.filter(familia__import_batch=batch).count()
         context['familias_pbf'] = batch.familias.filter(marc_pbf=True).count()
         context['renda_media'] = batch.familias.aggregate(Avg('vlr_renda_media_fam'))['vlr_renda_media_fam__avg'] or 0
         return context
@@ -112,13 +112,13 @@ class ComparisonView(LoginRequiredMixin, View):
         # Simple comparison logic
         stats1 = {
             'total_familias': batch1.familias.count(),
-            'total_pessoas': batch1.pessoas.count(),
+            'total_pessoas': Pessoa.objects.filter(familia__import_batch=batch1).count(),
             'renda_media': batch1.familias.aggregate(Avg('vlr_renda_media_fam'))['vlr_renda_media_fam__avg'] or 0
         }
         
         stats2 = {
             'total_familias': batch2.familias.count(),
-            'total_pessoas': batch2.pessoas.count(),
+            'total_pessoas': Pessoa.objects.filter(familia__import_batch=batch2).count(),
             'renda_media': batch2.familias.aggregate(Avg('vlr_renda_media_fam'))['vlr_renda_media_fam__avg'] or 0
         }
         

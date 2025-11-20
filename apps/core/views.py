@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db.models import Count, Q
 from apps.cecad.models import Familia, ImportBatch
-from apps.core.models import Validacao, Criterio, ValidacaoCriterio, Documento
+from apps.core.models import Validacao, Criterio, ValidacaoCriterio, DocumentoValidacao
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'core/dashboard.html'
@@ -105,9 +105,29 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
+        from apps.core.models import Categoria
+        from collections import defaultdict
+        
         context = super().get_context_data(**kwargs)
-        context['criterios'] = ValidacaoCriterio.objects.filter(validacao=self.object).select_related('criterio')
+        
+        # Buscar todos os critérios avaliados
+        criterios_avaliados = ValidacaoCriterio.objects.filter(
+            validacao=self.object
+        ).select_related('criterio', 'criterio__categoria').order_by('criterio__categoria__ordem', 'criterio__codigo')
+        
+        # Agrupar por categoria
+        criterios_por_categoria = defaultdict(list)
+        for vc in criterios_avaliados:
+            if vc.criterio.categoria:
+                criterios_por_categoria[vc.criterio.categoria].append(vc)
+        
+        # Passar categorias ordenadas e seus critérios
+        context['categorias'] = Categoria.objects.filter(ativo=True).order_by('ordem').prefetch_related('criterios')
+        context['criterios_por_categoria'] = dict(criterios_por_categoria)
+        context['criterios'] = criterios_avaliados  # Manter para compatibilidade
+        
         return context
+
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()

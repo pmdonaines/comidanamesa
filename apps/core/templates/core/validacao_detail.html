@@ -4,7 +4,7 @@
 {% block title %}Avaliação - {{ validacao.familia.cod_familiar_fam }} - Comida na Mesa{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-7xl" x-data="{ showDetails: true }">
+<div class="mx-auto max-w-7xl" x-data="{ showDetails: true, activeTab: 'assistencia_social' }">
 
     <!-- Sticky Header -->
     <div
@@ -89,14 +89,13 @@
                                     <span>{{ membro.dat_nasc_pessoa|date:"d/m/Y" }}</span>
                                 </div>
                             </div>
-                            {% endfor %}
-                        </div>
+                            {% endfor %}\n                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Right Column: Validation Checklist -->
+        <!-- Right Column: Validation Checklist with Tabs -->
         <div class="lg:col-span-2">
             <form method="post" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
                 {% csrf_token %}
@@ -111,26 +110,84 @@
                         </button>
                     </div>
 
-                    <div class="space-y-4">
-                        {% for vc in criterios %}
-                        <div
-                            class="relative flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors 
-                            {% if vc.atendido %}border-emerald-200 bg-emerald-50/50{% else %}border-gray-200{% endif %}">
-                            <div class="flex h-6 items-center">
-                                <input id="criterio_{{ vc.criterio.id }}" name="criterio_{{ vc.criterio.id }}" type="checkbox"
-                                    {% if vc.atendido %}checked{% endif %}
-                                    class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
-                            </div>
-                            <div class="ml-3 text-sm leading-6">
-                                <label for="criterio_{{ vc.criterio.id }}"
-                                    class="font-medium text-gray-900 cursor-pointer select-none">
-                                    {{ vc.criterio.descricao }}
-                                </label>
-                                <p class="text-gray-500 text-xs mt-1">Peso: {{ vc.criterio.peso }} • Pontos: {{ vc.criterio.pontos }}</p>
-                            </div>
-                        </div>
-                        {% endfor %}
+                    <!-- Tabs Navigation -->
+                    <div class="border-b border-gray-200 mb-6">
+                        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                            {% for categoria in categorias %}
+                            <button type="button"
+                                @click="activeTab = '{{ categoria.codigo }}'"
+                                :class="activeTab === '{{ categoria.codigo }}' ? 'border-emerald-500 text-emerald-600' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'"
+                                class="whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium transition-colors">
+                                <span class="flex items-center gap-2">
+                                    {% if categoria.codigo == 'assistencia_social' %}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                    {% elif categoria.codigo == 'saude' %}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                    </svg>
+                                    {% elif categoria.codigo == 'educacao' %}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"></path>
+                                    </svg>
+                                    {% elif categoria.codigo == 'documentacao' %}
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    {% endif %}
+                                    <span>{{ categoria.nome }}</span>
+                                    <span class="ml-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                                        {{ criterios_por_categoria|dict_get:categoria|length|default:0 }}
+                                    </span>
+                                </span>
+                            </button>
+                            {% endfor %}
+                        </nav>
                     </div>
+
+                    <!-- Tab Panels -->
+                    {% for categoria in categorias %}
+                    <div x-show="activeTab === '{{ categoria.codigo }}'" x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 transform scale-95"
+                        x-transition:enter-end="opacity-100 transform scale-100">
+                        
+                        <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <h4 class="text-sm font-semibold text-gray-900 mb-1">{{ categoria.nome }}</h4>
+                            <p class="text-xs text-gray-600">{{ categoria.descricao }}</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            {% for vc in criterios_por_categoria|dict_get:categoria %}
+                            <div
+                                class="relative flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors 
+                                {% if vc.atendido %}border-emerald-200 bg-emerald-50/50{% else %}border-gray-200{% endif %}">
+                                <div class="flex h-6 items-center">
+                                    <input id="criterio_{{ vc.criterio.id }}" name="criterio_{{ vc.criterio.id }}" type="checkbox"
+                                        {% if vc.atendido %}checked{% endif %}
+                                        class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
+                                </div>
+                                <div class="ml-3 text-sm leading-6 flex-1">
+                                    <label for="criterio_{{ vc.criterio.id }}"
+                                        class="font-medium text-gray-900 cursor-pointer select-none">
+                                        {{ vc.criterio.descricao }}
+                                    </label>
+                                    <p class="text-gray-500 text-xs mt-1">Peso: {{ vc.criterio.peso }} • Pontos: {{ vc.criterio.pontos }} • Pontuação máxima: {{ vc.criterio.pontos|multiply:vc.criterio.peso|floatformat:1 }} pts</p>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-8 text-gray-500">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <p class="mt-2 text-sm">Nenhum critério nesta categoria</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
 
                     <div class="mt-8 pt-6 border-t border-gray-100">
                         <label for="observacoes" class="block text-sm font-medium leading-6 text-gray-900">Observações
@@ -145,8 +202,8 @@
 
                 <div
                     class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8 bg-gray-50 sm:rounded-b-xl">
-                    <button type="button"
-                        class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">Cancelar</button>
+                    <a href="{% url 'fila_validacao' %}"
+                        class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">Cancelar</a>
                     <button type="submit" name="action" value="finalize"
                         class="rounded-md bg-emerald-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
                         Finalizar Validação

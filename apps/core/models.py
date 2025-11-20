@@ -2,7 +2,52 @@ from django.db import models
 from django.conf import settings
 from apps.cecad.models import Familia
 
+
+class Categoria(models.Model):
+    """Categorias temáticas para agrupar critérios de validação."""
+    
+    CODIGO_CHOICES = [
+        ('assistencia_social', 'Assistência Social'),
+        ('saude', 'Saúde'),
+        ('educacao', 'Educação'),
+        ('documentacao', 'Documentação'),
+    ]
+    
+    codigo = models.CharField(
+        "Código", 
+        max_length=50, 
+        choices=CODIGO_CHOICES, 
+        unique=True
+    )
+    nome = models.CharField("Nome", max_length=100)
+    descricao = models.TextField("Descrição", blank=True)
+    ordem = models.IntegerField("Ordem de Exibição", default=0)
+    icone = models.CharField(
+        "Ícone (nome Heroicon)", 
+        max_length=50, 
+        blank=True,
+        help_text="Ex: users, heart, academic-cap, document-text"
+    )
+    ativo = models.BooleanField("Ativo", default=True)
+    
+    class Meta:
+        verbose_name = "Categoria"
+        verbose_name_plural = "Categorias"
+        ordering = ['ordem']
+    
+    def __str__(self):
+        return self.nome
+
+
 class Criterio(models.Model):
+    categoria = models.ForeignKey(
+        Categoria, 
+        on_delete=models.PROTECT, 
+        related_name='criterios',
+        verbose_name="Categoria",
+        null=True,  # Temporariamente nullable para migration
+        blank=True
+    )
     descricao = models.CharField("Descrição", max_length=255)
     codigo = models.SlugField("Código Identificador", unique=True, help_text="Ex: renda_per_capita, vacinacao_em_dia")
     ativo = models.BooleanField("Ativo", default=True)
@@ -12,9 +57,11 @@ class Criterio(models.Model):
     class Meta:
         verbose_name = "Critério"
         verbose_name_plural = "Critérios"
+        ordering = ['categoria__ordem', 'codigo']
 
     def __str__(self):
-        return f"{self.descricao} ({self.pontos} pts)"
+        cat_nome = self.categoria.nome if self.categoria else "Sem categoria"
+        return f"[{cat_nome}] {self.descricao} ({self.pontos} pts)"
 
 
 class Validacao(models.Model):
@@ -123,6 +170,17 @@ class ValidacaoCriterio(models.Model):
     criterio = models.ForeignKey(Criterio, on_delete=models.PROTECT)
     atendido = models.BooleanField("Atendido", default=False)
     observacao = models.CharField("Observação", max_length=255, blank=True)
+    
+    # Referência ao documento que comprova o critério
+    documento_comprobatorio = models.ForeignKey(
+        'DocumentoPessoa',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='criterios_comprovados',
+        verbose_name="Documento Comprobatório"
+    )
+
 
     class Meta:
         unique_together = ('validacao', 'criterio')
@@ -130,17 +188,76 @@ class ValidacaoCriterio(models.Model):
         verbose_name_plural = "Avaliações de Critérios"
 
 
-class Documento(models.Model):
-    validacao = models.ForeignKey(Validacao, on_delete=models.CASCADE, related_name="documentos")
-    tipo = models.CharField("Tipo de Documento", max_length=100)
-    arquivo = models.FileField("Arquivo", upload_to="documentos/%Y/%m/", null=True, blank=True)
+class DocumentoPessoa(models.Model):
+    """Documentos pessoais vinculados a membros da família."""
+    
+    TIPO_CHOICES = [
+        ('rg', 'RG'),
+        ('cpf', 'CPF'),
+        ('certidao_nascimento', 'Certidão de Nascimento'),
+        ('certidao_casamento', 'Certidão de Casamento'),
+        ('carteira_vacinacao', 'Carteira de Vacinação'),
+        ('comprovante_matricula', 'Comprovante de Matrícula'),
+        ('historico_escolar', 'Histórico Escolar'),
+        ('declaracao_escolar', 'Declaração Escolar'),
+        ('exame_citopatologico', 'Exame Citopatológico'),
+        ('comprovante_residencia', 'Comprovante de Residência'),
+        ('outro', 'Outro'),
+    ]
+    
+    pessoa = models.ForeignKey(
+        'cecad.Pessoa', 
+        on_delete=models.CASCADE, 
+        related_name='documentos',
+        verbose_name="Pessoa"
+    )
+    tipo = models.CharField("Tipo", max_length=50, choices=TIPO_CHOICES)
+    arquivo = models.FileField("Arquivo", upload_to="documentos/pessoas/%Y/%m/")
+    numero_documento = models.CharField("Número do Documento", max_length=100, blank=True)
+    data_emissao = models.DateField("Data de Emissão", null=True, blank=True)
+    data_validade = models.DateField("Data de Validade", null=True, blank=True)
+    observacoes = models.TextField("Observações", blank=True)
     validado = models.BooleanField("Validado", default=False)
+    validado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='documentos_validados',
+        verbose_name="Validado por"
+    )
+    validado_em = models.DateTimeField("Validado em", null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Documento Pessoal"
+        verbose_name_plural = "Documentos Pessoais"
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.get_tipo_display()} - {self.pessoa.nom_pessoa}"
+
+
+
+class DocumentoValidacao(models.Model):
+    """Documentos específicos de uma validação (temporários, comprovantes únicos)."""
+    
+    validacao = models.ForeignKey(
+        Validacao, 
+        on_delete=models.CASCADE, 
+        related_name="documentos_anexos"
+    )
+    tipo = models.CharField("Tipo de Documento", max_length=100)
+    descricao = models.TextField("Descrição", blank=True)
+    arquivo = models.FileField("Arquivo", upload_to="documentos/validacoes/%Y/%m/", null=True, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        verbose_name = "Documento"
-        verbose_name_plural = "Documentos"
+        verbose_name = "Documento da Validação"
+        verbose_name_plural = "Documentos das Validações"
 
     def __str__(self):
         return f"{self.tipo} - {self.validacao.familia}"
