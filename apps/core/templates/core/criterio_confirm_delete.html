@@ -1,0 +1,110 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Excluir Critério - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+            <a href="{% url 'criterio_list' %}" 
+                class="text-gray-400 hover:text-gray-600">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:tracking-tight">
+                Excluir Critério
+            </h2>
+        </div>
+    </div>
+
+    <!-- Confirmation Card -->
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl overflow-hidden">
+        <div class="px-4 py-5 sm:p-6">
+            <!-- Warning Icon -->
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
+                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+
+            <h3 class="text-lg font-semibold text-gray-900 text-center mb-2">
+                Confirmar Exclusão
+            </h3>
+            
+            <p class="text-sm text-gray-500 text-center mb-6">
+                Tem certeza que deseja excluir este critério? Esta ação não pode ser desfeita.
+            </p>
+
+            <!-- Critério Info -->
+            <div class="rounded-lg bg-gray-50 p-4 mb-6">
+                <dl class="space-y-3">
+                    <div class="flex justify-between">
+                        <dt class="text-sm font-medium text-gray-500">Descrição:</dt>
+                        <dd class="text-sm text-gray-900 text-right max-w-xs">{{ criterio.descricao }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt class="text-sm font-medium text-gray-500">Código:</dt>
+                        <dd class="text-sm text-gray-900">
+                            <code class="rounded bg-white px-2 py-1 text-xs font-mono border border-gray-200">{{ criterio.codigo }}</code>
+                        </dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt class="text-sm font-medium text-gray-500">Pontuação:</dt>
+                        <dd class="text-sm text-gray-900">{{ criterio.pontos }} pts × {{ criterio.peso }} = <strong>{{ criterio.pontos|floatformat:0|default:0 }}</strong> pts</dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt class="text-sm font-medium text-gray-500">Status:</dt>
+                        <dd class="text-sm">
+                            {% if criterio.ativo %}
+                                <span class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                    Ativo
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                                    Inativo
+                                </span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            <!-- Impact Warning -->
+            {% if total_validacoes > 0 %}
+            <div class="rounded-md bg-yellow-50 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-yellow-800">Impacto da Exclusão</h3>
+                        <div class="mt-2 text-sm text-yellow-700">
+                            <p>Este critério está associado a <strong>{{ total_validacoes }}</strong> validação(ões). Ao excluí-lo, todas essas associações serão removidas permanentemente.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 gap-3">
+            <form method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit"
+                    class="inline-flex w-full justify-center rounded-md bg-red-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-500 sm:w-auto">
+                    Sim, Excluir Critério
+                </button>
+            </form>
+            <a href="{% url 'criterio_list' %}"
+                class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto">
+                Cancelar
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

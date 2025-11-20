@@ -1,0 +1,100 @@
+{
+  "d.cod_familiar_fam": {
+    "description": "Codigo familiar",
+    "suggested_type": "CharField(max_length=64)",
+    "pii": false,
+    "notes": "Identificador da família; indexar; chave para relacionar membros",
+    "example": "FAM123456"
+  },
+  "d.dat_atual_fam": {
+    "description": "Data da ultima atualizacao da familia",
+    "suggested_type": "DateField",
+    "pii": false,
+    "notes": "Usada para verificar recencia do cadastro (eligibilidade)",
+    "example": "2024-11-01"
+  },
+  "d.nom_localidade_fam": {
+    "description": "Nome da localidade",
+    "suggested_type": "CharField(max_length=200)",
+    "pii": false,
+    "notes": "Normalizar abreviaturas e espaços",
+    "example": "Centro"
+  },
+  "d.nom_tip_logradouro_fam": {
+    "description": "Tipo de logradouro",
+    "suggested_type": "CharField(max_length=50)",
+    "pii": false,
+    "notes": "Ex.: Rua, Avenida — importante para normalização",
+    "example": "Rua"
+  },
+  "d.nom_logradouro_fam": {
+    "description": "Nome do logradouro",
+    "suggested_type": "CharField(max_length=200)",
+    "pii": false,
+    "notes": "Consolidar nomes para deduplicação",
+    "example": "Joao Pessoa"
+  },
+  "d.num_logradouro_fam": {
+    "description": "Numero do logradouro",
+    "suggested_type": "CharField(max_length=20)",
+    "pii": false,
+    "notes": "Pode conter letras/intervalos — manter como string",
+    "example": "123A"
+  },
+  "p.nom_pessoa": {
+    "description": "Nome",
+    "suggested_type": "CharField(max_length=255)",
+    "pii": true,
+    "notes": "Tratar com cuidado; mascarar em listas; auditar acessos",
+    "example": "Maria da Silva"
+  },
+  "p.num_nis_pessoa_atual": {
+    "description": "NIS",
+    "suggested_type": "CharField(max_length=32)",
+    "pii": true,
+    "notes": "Indexar; validar formato quando possível; criptografar se requerido",
+    "example": "12345678901"
+  },
+  "p.nom_apelido_pessoa": {
+    "description": "Apelido/Nome Social",
+    "suggested_type": "CharField(max_length=255)",
+    "pii": true,
+    "notes": "Opcional — usar quando disponível para correspondência",
+    "example": "Mari"
+  },
+  "p.cod_sexo_pessoa": {
+    "description": "Sexo",
+    "suggested_type": "SmallIntegerField(choices)",
+    "pii": false,
+    "notes": "Choices: 1=Masculino, 2=Feminino; tratar desconhecido como null",
+    "example": "1"
+  },
+  "p.dta_nasc_pessoa": {
+    "description": "Data de nascimento",
+    "suggested_type": "DateField",
+    "pii": false,
+    "notes": "Validar formatos (DDMMAAAA e ISO). Importante para cálculo de faixa etária",
+    "example": "1980-05-10"
+  },
+  "p.num_cpf_pessoa": {
+    "description": "CPF da pessoa",
+    "suggested_type": "CharField(max_length=14)",
+    "pii": true,
+    "notes": "Normalizar (remover máscara), validar dígitos; armazenar criptografado; indexar via hash para buscas",
+    "example": "123.456.789-09"
+  },
+  "p.ref_cad": {
+    "description": "Referencia Cadastro Unico",
+    "suggested_type": "CharField(max_length=64)",
+    "pii": false,
+    "notes": "Identificador/versao do cadastro — útil para rastrear origem/versão",
+    "example": "CAD_2024_01"
+  },
+  "p.ref_pbf": {
+    "description": "Referencia Programa Bolsa Familia",
+    "suggested_type": "CharField(max_length=64)",
+    "pii": false,
+    "notes": "Identificador do registro no PBF (se aplicado)",
+    "example": "PBF_2023_0001"
+  }
+}

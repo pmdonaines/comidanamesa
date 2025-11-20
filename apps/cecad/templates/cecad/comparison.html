@@ -1,0 +1,122 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Comparar Importações - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="min-w-0 flex-1">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                Comparar Importações
+            </h2>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl mb-8">
+        <div class="px-4 py-6 sm:p-8">
+            <form method="post" class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                {% csrf_token %}
+                <div class="sm:col-span-3">
+                    <label for="batch1" class="block text-sm font-medium leading-6 text-gray-900">Lote 1 (Base)</label>
+                    <div class="mt-2">
+                        <select id="batch1" name="batch1" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                            {% for batch in batches %}
+                            <option value="{{ batch.id }}" {% if batch1.id == batch.id %}selected{% endif %}>{{ batch.description }} ({{ batch.imported_at|date:"d/m/Y" }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sm:col-span-3">
+                    <label for="batch2" class="block text-sm font-medium leading-6 text-gray-900">Lote 2 (Comparação)</label>
+                    <div class="mt-2">
+                        <select id="batch2" name="batch2" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                            {% for batch in batches %}
+                            <option value="{{ batch.id }}" {% if batch2.id == batch.id %}selected{% endif %}>{{ batch.description }} ({{ batch.imported_at|date:"d/m/Y" }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="sm:col-span-6 flex justify-end">
+                    <button type="submit" class="rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">Comparar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if batch1 and batch2 %}
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-8">
+        <!-- Batch 1 Stats -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">{{ batch1.description }}</h3>
+                <dl class="mt-5 grid grid-cols-1 gap-5">
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Famílias</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ stats1.total_familias }}</dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Pessoas</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ stats1.total_pessoas }}</dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Renda Média</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">R$ {{ stats1.renda_media|floatformat:2 }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Comparison Stats -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">Diferença</h3>
+                <dl class="mt-5 grid grid-cols-1 gap-5">
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Famílias</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight {% if diff.familias > 0 %}text-green-600{% elif diff.familias < 0 %}text-red-600{% else %}text-gray-900{% endif %}">
+                            {% if diff.familias > 0 %}+{% endif %}{{ diff.familias }}
+                        </dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Pessoas</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight {% if diff.pessoas > 0 %}text-green-600{% elif diff.pessoas < 0 %}text-red-600{% else %}text-gray-900{% endif %}">
+                            {% if diff.pessoas > 0 %}+{% endif %}{{ diff.pessoas }}
+                        </dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Renda Média</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight {% if diff.renda > 0 %}text-green-600{% elif diff.renda < 0 %}text-red-600{% else %}text-gray-900{% endif %}">
+                            {% if diff.renda > 0 %}+{% endif %}R$ {{ diff.renda|floatformat:2 }}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Batch 2 Stats -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-base font-semibold leading-6 text-gray-900">{{ batch2.description }}</h3>
+                <dl class="mt-5 grid grid-cols-1 gap-5">
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Famílias</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ stats2.total_familias }}</dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Pessoas</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ stats2.total_pessoas }}</dd>
+                    </div>
+                    <div class="overflow-hidden rounded-lg bg-gray-50 px-4 py-5 sm:p-6">
+                        <dt class="truncate text-sm font-medium text-gray-500">Renda Média</dt>
+                        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">R$ {{ stats2.renda_media|floatformat:2 }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Relatórios - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="md:flex md:items-center md:justify-between">
+        <div class="min-w-0 flex-1">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                Relatórios de Validação
+            </h2>
+            <p class="mt-2 text-sm text-gray-600">
+                Visualize e exporte relatórios de famílias validadas
+            </p>
+        </div>
+        <div class="mt-4 flex md:ml-4 md:mt-0">
+            <a href="?{{ request.GET.urlencode }}&export=csv"
+                class="inline-flex items-center gap-x-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500">
+                <svg class="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path
+                        d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
+                    <path
+                        d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                </svg>
+                Exportar CSV
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <dl class="grid grid-cols-1 gap-5 sm:grid-cols-4">
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow-sm border border-gray-200 sm:p-6">
+            <dt class="truncate text-sm font-medium text-gray-500">Total de famílias</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ total_validacoes }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow-sm border border-gray-200 sm:p-6">
+            <dt class="truncate text-sm font-medium text-gray-500">Aprovadas</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-green-600">{{ total_aprovadas }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow-sm border border-gray-200 sm:p-6">
+            <dt class="truncate text-sm font-medium text-gray-500">Reprovadas</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-red-600">{{ total_reprovadas }}</dd>
+        </div>
+        <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow-sm border border-gray-200 sm:p-6">
+            <dt class="truncate text-sm font-medium text-gray-500">Pendentes</dt>
+            <dd class="mt-1 text-3xl font-semibold tracking-tight text-yellow-600">{{ total_pendentes }}</dd>
+        </div>
+    </dl>
+
+    <!-- Filters -->
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg p-6">
+        <form method="get" class="flex flex-wrap gap-4">
+            <div class="flex-1 min-w-[200px]">
+                <label for="status" class="block text-sm font-medium leading-6 text-gray-900">Status</label>
+                <select id="status" name="status"
+                    class="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                    <option value="">Todos</option>
+                    <option value="aprovado" {% if status_filter == 'aprovado' %} selected {% endif %}>Aprovado</option>
+                    <option value="reprovado" {% if status_filter == 'reprovado' %} selected {% endif %}>Reprovado
+                    </option>
+                    <option value="pendente" {% if status_filter == 'pendente' %} selected {% endif %}>Pendente</option>
+                    <option value="em_analise" {% if status_filter == 'em_analise' %} selected {% endif %}>Em Análise
+                    </option>
+                </select>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label for="min_score" class="block text-sm font-medium leading-6 text-gray-900">Pontuação
+                    Mínima</label>
+                <input type="number" name="min_score" id="min_score" value="{{ min_score_filter }}"
+                    class="mt-2 block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+            </div>
+            <div class="flex items-end">
+                <button type="submit"
+                    class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                    Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg overflow-hidden">
+        <table class="min-w-full divide-y divide-gray-300">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                        Família</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Responsável</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">NIS</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Renda</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+                    <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Pontuação</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 bg-white">
+                {% for validacao in validacoes %}
+                <tr>
+                    <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                        {{ validacao.familia.cod_familiar_fam }}
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                        <a href="{% url 'validacao_view' validacao.pk %}" 
+                           class="text-emerald-600 hover:text-emerald-900 font-medium hover:underline">
+                            {{ validacao.familia.membros.first.nom_pessoa|default:"-" }}
+                        </a>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {{ validacao.familia.membros.first.num_nis_pessoa_atual|default:"-" }}
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        R$ {{ validacao.familia.vlr_renda_media_fam }}
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm">
+                        <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
+                            {% if validacao.status == 'aprovado' %}bg-green-50 text-green-700 ring-green-600/20
+                            {% elif validacao.status == 'reprovado' %}bg-red-50 text-red-700 ring-red-600/20
+                            {% elif validacao.status == 'em_analise' %}bg-yellow-50 text-yellow-800 ring-yellow-600/20
+                            {% else %}bg-gray-50 text-gray-600 ring-gray-500/10{% endif %}">
+                            {{ validacao.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        <span class="font-medium text-gray-900">{{ validacao.pontuacao_total|default:"0" }}</span> pts
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-10 text-center text-sm text-gray-500">
+                        Nenhuma validação encontrada com os filtros aplicados.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6"
+            aria-label="Pagination">
+            <div class="hidden sm:block">
+                <p class="text-sm text-gray-700">
+                    Mostrando <span class="font-medium">{{ page_obj.start_index }}</span> até <span
+                        class="font-medium">{{ page_obj.end_index }}</span> de <span class="font-medium">{{
+                        paginator.count }}</span> resultados
+                </p>
+            </div>
+            <div class="flex flex-1 justify-between sm:justify-end gap-x-3">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}&{{ request.GET.urlencode }}"
+                    class="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Anterior</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}&{{ request.GET.urlencode }}"
+                    class="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Próximo</a>
+                {% endif %}
+            </div>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

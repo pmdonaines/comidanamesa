@@ -1,0 +1,101 @@
+from django.db import models
+
+class ImportBatch(models.Model):
+    STATUS_CHOICES = [
+        ('processing', 'Processando'),
+        ('completed', 'Concluído'),
+        ('error', 'Erro'),
+    ]
+
+    description = models.CharField("Descrição", max_length=255, blank=True)
+    imported_at = models.DateTimeField("Data de Importação", auto_now_add=True)
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='processing')
+    original_file = models.FileField("Arquivo Original", upload_to='imports/cecad/', null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Lote de Importação"
+        verbose_name_plural = "Lotes de Importação"
+        ordering = ["-imported_at"]
+
+    def __str__(self):
+        return f"Importação {self.pk} - {self.imported_at.strftime('%d/%m/%Y %H:%M')}"
+
+
+class Familia(models.Model):
+    import_batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name="familias", verbose_name="Lote de Importação", null=True)
+    cod_familiar_fam = models.CharField("Código Familiar", max_length=11)
+    dat_atual_fam = models.DateField("Data de Atualização")
+    vlr_renda_media_fam = models.DecimalField("Renda Média Familiar", max_digits=10, decimal_places=2, null=True, blank=True)
+    vlr_renda_total_fam = models.DecimalField("Renda Total Familiar", max_digits=10, decimal_places=2, null=True, blank=True)
+    marc_pbf = models.BooleanField("Beneficiário Bolsa Família", default=False)
+    qtde_pessoas = models.IntegerField("Quantidade de Pessoas", default=0)
+    
+    # Endereço
+    nom_logradouro_fam = models.CharField("Logradouro", max_length=255, blank=True)
+    num_logradouro_fam = models.CharField("Número", max_length=20, blank=True)
+    nom_localidade_fam = models.CharField("Bairro/Localidade", max_length=100, blank=True)
+    num_cep_logradouro_fam = models.CharField("CEP", max_length=8, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Família"
+        verbose_name_plural = "Famílias"
+        ordering = ["-dat_atual_fam"]
+        unique_together = ['cod_familiar_fam', 'import_batch']
+
+    def __str__(self):
+        return f"{self.cod_familiar_fam} - Renda: {self.vlr_renda_media_fam}"
+
+
+class Pessoa(models.Model):
+    import_batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name="pessoas", verbose_name="Lote de Importação", null=True)
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name="membros")
+    num_nis_pessoa_atual = models.CharField("NIS", max_length=11)
+    nom_pessoa = models.CharField("Nome", max_length=255)
+    num_cpf_pessoa = models.CharField("CPF", max_length=11, null=True, blank=True)
+    dat_nasc_pessoa = models.DateField("Data de Nascimento", null=True, blank=True)
+    cod_parentesco_rf_pessoa = models.IntegerField("Código Parentesco", choices=[
+        (1, "Responsável Familiar"),
+        (2, "Cônjuge ou Companheiro"),
+        (3, "Filho(a)"),
+        (4, "Enteado(a)"),
+        (5, "Neto(a) ou Bisneto(a)"),
+        (6, "Pai ou Mãe"),
+        (7, "Sogro(a)"),
+        (8, "Irmão ou Irmã"),
+        (9, "Genro ou Nora"),
+        (10, "Outros Parentes"),
+        (11, "Não Parente"),
+    ], default=1)
+    
+    # Dados Escolares
+    cod_curso_frequentou_pessoa_membro = models.IntegerField("Curso Frequentado", null=True, blank=True)
+    cod_ano_serie_frequentou_pessoa_membro = models.IntegerField("Ano/Série Frequentado", null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Pessoa"
+        verbose_name_plural = "Pessoas"
+        unique_together = ['num_nis_pessoa_atual', 'import_batch']
+
+    def __str__(self):
+        return f"{self.nom_pessoa} ({self.num_nis_pessoa_atual})"
+
+
+class Beneficio(models.Model):
+    import_batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name="beneficios", verbose_name="Lote de Importação", null=True)
+    familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name="beneficios")
+    tipo_beneficio = models.CharField("Tipo de Benefício", max_length=100)
+    valor = models.DecimalField("Valor", max_digits=10, decimal_places=2)
+    data_referencia = models.DateField("Data de Referência")
+
+    class Meta:
+        verbose_name = "Benefício"
+        verbose_name_plural = "Benefícios"
+
+    def __str__(self):
+        return f"{self.tipo_beneficio} - {self.valor}"

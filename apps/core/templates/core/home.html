@@ -1,0 +1,80 @@
+{% extends 'core/base_landing.html' %}
+{% load static %}
+
+{% block title %}Início - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+  <div class="text-center py-16 sm:py-20">
+    <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+      Comida na Mesa
+    </h1>
+    <p class="mt-6 text-lg leading-8 text-gray-600">
+      Sistema de gestão e validação de beneficiários para o programa de segurança alimentar da Prefeitura de Dona Inês.
+    </p>
+    <div class="mt-10 flex items-center justify-center gap-x-6">
+      {% if user.is_authenticated %}
+      <a href="{% url 'dashboard' %}"
+        class="rounded-md bg-emerald-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+        Acessar Dashboard
+      </a>
+      <a href="{% url 'fila_validacao' %}" class="text-sm font-semibold leading-6 text-gray-900">
+        Ver Fila de Validação <span aria-hidden="true">→</span>
+      </a>
+      {% else %}
+      <a href="{% url 'login' %}"
+        class="rounded-md bg-emerald-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+        Fazer Login
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 mt-8">
+    <div
+      class="relative flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600">
+        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold leading-8 text-gray-900">Importação Automática</h3>
+        <p class="text-sm leading-6 text-gray-600">Importe dados diretamente do CECAD/CadÚnico via CSV para manter a
+          base atualizada.</p>
+      </div>
+    </div>
+
+    <div
+      class="relative flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600">
+        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold leading-8 text-gray-900">Validação Inteligente</h3>
+        <p class="text-sm leading-6 text-gray-600">Cálculo automático de elegibilidade baseado em critérios
+          configuráveis como renda e composição familiar.</p>
+      </div>
+    </div>
+
+    <div
+      class="relative flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow">
+      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600">
+        <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold leading-8 text-gray-900">Relatórios Detalhados</h3>
+        <p class="text-sm leading-6 text-gray-600">Gere listas de beneficiários aptos e acompanhe estatísticas do
+          programa em tempo real.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends 'core/base.html' %}
+{% load core_extras %}
+
+{% block title %}Avaliação - {{ validacao.familia.cod_familiar_fam }} - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl" x-data="{ showDetails: true }">
+
+    <!-- Sticky Header -->
+    <div
+        class="sticky top-0 z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-gray-50/95 backdrop-blur py-4 border-b border-gray-200 mb-8 flex items-center justify-between">
+        <div class="min-w-0 flex-1">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Avaliação de Elegibilidade</h2>
+            <p class="mt-1 text-sm text-gray-500">Família: <span class="font-mono font-medium text-gray-700">{{ validacao.familia.cod_familiar_fam }}</span></p>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="text-right mr-4">
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Pontuação</div>
+                <div class="text-2xl font-bold text-emerald-600">{{ validacao.pontuacao_total }} pts</div>
+            </div>
+            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
+                {% if validacao.status == 'aprovado' %}bg-green-50 text-green-700 ring-green-600/20
+                {% elif validacao.status == 'reprovado' %}bg-red-50 text-red-700 ring-red-600/20
+                {% elif validacao.status == 'em_analise' %}bg-yellow-50 text-yellow-800 ring-yellow-600/20
+                {% else %}bg-gray-50 text-gray-600 ring-gray-500/10{% endif %}">
+                {{ validacao.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-x-8 gap-y-8 lg:grid-cols-3">
+        <!-- Left Column: Family Profile -->
+        <div class="lg:col-span-1">
+            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl overflow-hidden sticky top-24">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Dados da Família</h3>
+
+                    <dl class="space-y-4">
+                        <div>
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Responsável Familiar
+                            </dt>
+                            <dd class="mt-1 text-sm font-medium text-gray-900">{{ validacao.familia.membros.first.nom_pessoa }}</dd>
+                            <dd class="text-xs text-gray-500">NIS: {{ validacao.familia.membros.first.num_nis_pessoa_atual }}</dd>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100">
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Renda Per Capita</dt>
+                            <dd class="mt-1 text-2xl font-bold text-gray-900">R$ {{ validacao.familia.vlr_renda_media_fam }}</dd>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100">
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Endereço</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                {{ validacao.familia.nom_logradouro_fam }}, {{ validacao.familia.num_logradouro_fam }}<br>
+                                {{ validacao.familia.nom_localidade_fam }}<br>
+                                CEP: {{ validacao.familia.num_cep_logradouro_fam }}
+                            </dd>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100">
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Composição Familiar</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ validacao.familia.qtde_pessoas }} pessoas</dd>
+                        </div>
+                    </dl>
+
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <button @click="showDetails = !showDetails"
+                            class="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
+                            <span x-text="showDetails ? 'Ocultar Membros' : 'Ver Membros'"></span>
+                            <svg x-show="!showDetails" class="w-4 h-4" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                            <svg x-show="showDetails" class="w-4 h-4" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7">
+                                </path>
+                            </svg>
+                        </button>
+
+                        <div x-show="showDetails" class="mt-4 space-y-3" x-transition>
+                            {% for membro in validacao.familia.membros.all %}
+                            <div class="text-sm border-b border-gray-50 pb-2 last:border-0">
+                                <div class="font-medium text-gray-900">{{ membro.nom_pessoa }}</div>
+                                <div class="text-xs text-gray-500 flex items-center gap-2">
+                                    <span>{{ membro.get_cod_parentesco_rf_pessoa_display }}</span>
+                                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{{ membro.dat_nasc_pessoa|date:"d/m/Y" }}</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Validation Checklist -->
+        <div class="lg:col-span-2">
+            <form method="post" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_criteria">
+
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900">Checklist de Elegibilidade</h3>
+                        <button type="submit"
+                            class="text-sm bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-md hover:bg-emerald-100 font-medium transition-colors border border-emerald-200">
+                            Salvar Progresso
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        {% for vc in criterios %}
+                        <div
+                            class="relative flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors 
+                            {% if vc.atendido %}border-emerald-200 bg-emerald-50/50{% else %}border-gray-200{% endif %}">
+                            <div class="flex h-6 items-center">
+                                <input id="criterio_{{ vc.criterio.id }}" name="criterio_{{ vc.criterio.id }}" type="checkbox"
+                                    {% if vc.atendido %}checked{% endif %}
+                                    class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
+                            </div>
+                            <div class="ml-3 text-sm leading-6">
+                                <label for="criterio_{{ vc.criterio.id }}"
+                                    class="font-medium text-gray-900 cursor-pointer select-none">
+                                    {{ vc.criterio.descricao }}
+                                </label>
+                                <p class="text-gray-500 text-xs mt-1">Peso: {{ vc.criterio.peso }} • Pontos: {{ vc.criterio.pontos }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-8 pt-6 border-t border-gray-100">
+                        <label for="observacoes" class="block text-sm font-medium leading-6 text-gray-900">Observações
+                            Gerais</label>
+                        <div class="mt-2">
+                            <textarea id="observacoes" name="observacoes" rows="3"
+                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6"
+                                placeholder="Adicione observações sobre a documentação ou situação da família...">{{ validacao.observacoes }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8 bg-gray-50 sm:rounded-b-xl">
+                    <button type="button"
+                        class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">Cancelar</button>
+                    <button type="submit" name="action" value="finalize"
+                        class="rounded-md bg-emerald-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                        Finalizar Validação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

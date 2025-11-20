@@ -1,0 +1,143 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Detalhes da Família - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="md:flex md:items-center md:justify-between">
+        <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-x-3">
+                <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                    Família {{ familia.cod_familiar_fam }}
+                </h2>
+                {% if familia.marc_pbf %}
+                <span
+                    class="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Bolsa
+                    Família</span>
+                {% endif %}
+            </div>
+            <p class="mt-2 text-sm text-gray-500">Atualizado em {{ familia.dat_atual_fam|date:"d/m/Y" }}</p>
+        </div>
+        <div class="mt-4 flex md:ml-4 md:mt-0">
+            <a href="{% url 'cecad_familia_list' %}"
+                class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                Voltar para Lista
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Grid -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <!-- Family Info -->
+        <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Dados da Família</h3>
+                <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                    <div class="sm:col-span-1">
+                        <dt class="text-sm font-medium text-gray-500">Renda Média</dt>
+                        <dd class="mt-1 text-sm text-gray-900">R$ {{ familia.vlr_renda_media_fam|floatformat:2 }}</dd>
+                    </div>
+                    <div class="sm:col-span-1">
+                        <dt class="text-sm font-medium text-gray-500">Renda Total</dt>
+                        <dd class="mt-1 text-sm text-gray-900">R$ {{ familia.vlr_renda_total_fam|floatformat:2 }}</dd>
+                    </div>
+                    <div class="sm:col-span-1">
+                        <dt class="text-sm font-medium text-gray-500">Quantidade de Pessoas</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ familia.qtde_pessoas }}</dd>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm font-medium text-gray-500">Endereço</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {{ familia.nom_logradouro_fam }}, {{ familia.num_logradouro_fam }} - {{
+                            familia.nom_localidade_fam }}
+                            {% if familia.num_cep_logradouro_fam %}<br>CEP: {{ familia.num_cep_logradouro_fam }}{% endif
+                            %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Benefits Info -->
+        <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Benefícios</h3>
+                {% if beneficios %}
+                <div class="flow-root">
+                    <ul role="list" class="-my-5 divide-y divide-gray-200">
+                        {% for beneficio in beneficios %}
+                        <li class="py-4">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">
+                                        {{ beneficio.tipo_beneficio }}
+                                    </p>
+                                    <p class="text-sm text-gray-500 truncate">
+                                        Ref: {{ beneficio.data_referencia|date:"m/Y" }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <span
+                                        class="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                                        R$ {{ beneficio.valor|floatformat:2 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-500">Nenhum benefício registrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Table -->
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl overflow-hidden">
+        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <h3 class="text-base font-semibold leading-6 text-gray-900">Membros da Família</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-300">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                            Nome</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">NIS</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">CPF</th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Data Nasc.
+                        </th>
+                        <th scope="col" class="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Parentesco
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 bg-white">
+                    {% for membro in membros %}
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                            {{ membro.nom_pessoa }}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {{ membro.num_nis_pessoa_atual }}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {{ membro.num_cpf_pessoa|default:"-" }}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {{ membro.dat_nasc_pessoa|date:"d/m/Y" }}
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                            {{ membro.get_cod_parentesco_rf_pessoa_display }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

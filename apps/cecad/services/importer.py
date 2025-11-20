@@ -1,0 +1,128 @@
+import csv
+import logging
+from datetime import datetime
+from decimal import Decimal
+from django.db import transaction
+from django.utils.dateparse import parse_date
+from apps.cecad.models import Familia, Pessoa, ImportBatch
+from apps.core.models import Validacao
+
+logger = logging.getLogger(__name__)
+
+class CecadImporter:
+    def __init__(self, file_path, import_batch):
+        self.file_path = file_path
+        self.import_batch = import_batch
+
+    def run(self):
+        """Executa a importação do arquivo CSV."""
+        try:
+            self.import_batch.status = 'processing'
+            self.import_batch.save()
+
+            with open(self.file_path, 'r', encoding='utf-8-sig') as f:
+                # Detect delimiter
+                sample = f.read(1024)
+                f.seek(0)
+                sniffer = csv.Sniffer()
+                try:
+                    dialect = sniffer.sniff(sample)
+                except csv.Error:
+                    dialect = csv.excel
+                    dialect.delimiter = ';' # Fallback default
+                
+                reader = csv.DictReader(f, dialect=dialect)
+                
+                with transaction.atomic():
+                    for row in reader:
+                        self._process_row(row)
+            
+            self.import_batch.status = 'completed'
+            self.import_batch.save()
+            return True, "Importação concluída com sucesso."
+        except Exception as e:
+            self.import_batch.status = 'error'
+            self.import_batch.save()
+            logger.error(f"Erro na importação: {e}")
+            return False, str(e)
+
+    def _process_row(self, row):
+        """Processa uma linha do CSV e cria/atualiza Família e Pessoa."""
+        # Dados da Família (Prefix d.)
+        cod_familiar = row.get('d.cod_familiar_fam')
+        if not cod_familiar:
+            return
+
+        dat_atual = self._parse_date(row.get('d.dat_atual_fam'))
+        renda_media = self._parse_decimal(row.get('d.vlr_renda_media_fam'))
+        renda_total = self._parse_decimal(row.get('d.vlr_renda_total_fam'))
+        
+        familia, created = Familia.objects.update_or_create(
+            cod_familiar_fam=cod_familiar,
+            import_batch=self.import_batch,
+            defaults={
+                'dat_atual_fam': dat_atual or datetime.now().date(),
+                'vlr_renda_media_fam': renda_media,
+                'vlr_renda_total_fam': renda_total,
+                'marc_pbf': row.get('d.marc_pbf') == '1',
+                'qtde_pessoas': self._parse_int(row.get('d.qtde_pessoas_domic_fam')) or 0,
+                'nom_logradouro_fam': row.get('d.nom_logradouro_fam', ''),
+                'num_logradouro_fam': row.get('d.num_logradouro_fam', ''),
+                'nom_localidade_fam': row.get('d.nom_localidade_fam', ''),
+                'num_cep_logradouro_fam': row.get('d.num_cep_logradouro_fam', ''),
+            }
+        )
+
+        if created:
+            Validacao.objects.create(familia=familia)
+
+        # Dados da Pessoa (Prefix p.)
+        nis = row.get('p.num_nis_pessoa_atual')
+        if nis:
+            cpf = row.get('p.num_cpf_pessoa')
+            # Ensure empty CPF is treated as None to avoid unique constraint violation
+            if not cpf or not cpf.strip():
+                cpf = None
+            
+            Pessoa.objects.update_or_create(
+                num_nis_pessoa_atual=nis,
+                import_batch=self.import_batch,
+                defaults={
+                    'familia': familia,
+                    'nom_pessoa': row.get('p.nom_pessoa', ''),
+                    'num_cpf_pessoa': cpf,
+                    'dat_nasc_pessoa': self._parse_date(row.get('p.dta_nasc_pessoa')),
+                    'cod_parentesco_rf_pessoa': self._parse_int(row.get('p.cod_parentesco_rf_pessoa')) or 1,
+                    'cod_curso_frequentou_pessoa_membro': self._parse_int(row.get('p.cod_curso_frequentou_pessoa_memb')),
+                    'cod_ano_serie_frequentou_pessoa_membro': self._parse_int(row.get('p.cod_ano_serie_frequentou_memb')),
+                }
+            )
+
+    def _parse_date(self, date_str):
+        if not date_str:
+            return None
+        try:
+            # Tenta formato DD/MM/YYYY
+            return datetime.strptime(date_str, '%d/%m/%Y').date()
+        except ValueError:
+            try:
+                # Tenta formato ISO YYYY-MM-DD
+                return parse_date(date_str)
+            except:
+                return None
+
+    def _parse_decimal(self, value):
+        if not value:
+            return Decimal('0.00')
+        try:
+            return Decimal(value.replace(',', '.'))
+        except:
+            return Decimal('0.00')
+
+    def _parse_int(self, value):
+        if not value:
+            return None
+        try:
+            return int(float(value.replace(',', '.'))) # Handle cases like "1,0"
+        except:
+            return None

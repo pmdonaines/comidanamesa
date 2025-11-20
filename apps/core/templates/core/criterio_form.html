@@ -1,0 +1,159 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-2xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex items-center gap-4 mb-4">
+            <a href="{% url 'criterio_list' %}" 
+                class="text-gray-400 hover:text-gray-600">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:tracking-tight">
+                {{ title }}
+            </h2>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+        <form method="post" class="px-4 py-5 sm:p-6">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                <!-- Descrição -->
+                <div class="sm:col-span-6">
+                    <label for="descricao" class="block text-sm font-medium leading-6 text-gray-900">
+                        Descrição do Critério
+                        <span class="text-red-600">*</span>
+                    </label>
+                    <div class="mt-2">
+                        <textarea id="descricao" name="descricao" rows="3" required
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6"
+                            placeholder="Ex: Famílias em extrema vulnerabilidade social com renda per capita de até R$ 218,00">{% if criterio %}{{ criterio.descricao }}{% endif %}</textarea>
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">Descrição completa do critério de elegibilidade.</p>
+                </div>
+
+                <!-- Código -->
+                <div class="sm:col-span-4">
+                    <label for="codigo" class="block text-sm font-medium leading-6 text-gray-900">
+                        Código Identificador
+                        <span class="text-red-600">*</span>
+                    </label>
+                    <div class="mt-2">
+                        <input type="text" name="codigo" id="codigo" required
+                            value="{% if criterio %}{{ criterio.codigo }}{% endif %}"
+                            {% if criterio %}readonly{% endif %}
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6 {% if criterio %}bg-gray-50{% endif %}"
+                            placeholder="renda_per_capita">
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">
+                        Identificador único (slug). {% if criterio %}Não pode ser editado após criação.{% else %}Use apenas letras minúsculas, números e underscore.{% endif %}
+                    </p>
+                </div>
+
+                <!-- Pontos -->
+                <div class="sm:col-span-3">
+                    <label for="pontos" class="block text-sm font-medium leading-6 text-gray-900">
+                        Pontos
+                    </label>
+                    <div class="mt-2">
+                        <input type="number" name="pontos" id="pontos" min="0" max="100" step="1"
+                            value="{% if criterio %}{{ criterio.pontos }}{% else %}10{% endif %}"
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">Pontuação base do critério.</p>
+                </div>
+
+                <!-- Peso -->
+                <div class="sm:col-span-3">
+                    <label for="peso" class="block text-sm font-medium leading-6 text-gray-900">
+                        Peso (Multiplicador)
+                    </label>
+                    <div class="mt-2">
+                        <input type="number" name="peso" id="peso" min="0" max="10" step="0.1"
+                            value="{% if criterio %}{{ criterio.peso }}{% else %}1.0{% endif %}"
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">Multiplicador para dar mais importância.</p>
+                </div>
+
+                <!-- Ativo -->
+                <div class="sm:col-span-6">
+                    <div class="flex items-start">
+                        <div class="flex h-6 items-center">
+                            <input id="ativo" name="ativo" type="checkbox"
+                                {% if not criterio or criterio.ativo %}checked{% endif %}
+                                class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
+                        </div>
+                        <div class="ml-3 text-sm leading-6">
+                            <label for="ativo" class="font-medium text-gray-900">Critério Ativo</label>
+                            <p class="text-gray-500">Critérios inativos não serão usados em novas validações.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cálculo de Pontuação -->
+                <div class="sm:col-span-6 border-t border-gray-200 pt-6">
+                    <div class="rounded-lg bg-emerald-50 p-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <h3 class="text-sm font-medium text-emerald-800">Cálculo da Pontuação</h3>
+                                <div class="mt-2 text-sm text-emerald-700">
+                                    <p class="font-mono">Pontuação = <span id="preview-pontos">{{ criterio.pontos|default:10 }}</span> × <span id="preview-peso">{{ criterio.peso|default:"1.0" }}</span> = <strong id="preview-total">{{ criterio.pontos|default:10 }}</strong> pontos</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões -->
+            <div class="mt-6 flex items-center justify-end gap-x-6 border-t border-gray-900/10 pt-6">
+                <a href="{% url 'criterio_list' %}" 
+                    class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">
+                    Cancelar
+                </a>
+                <button type="submit"
+                    class="rounded-md bg-emerald-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+                    {{ button_text }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Atualizar preview de cálculo em tempo real
+document.addEventListener('DOMContentLoaded', function() {
+    const pontosInput = document.getElementById('pontos');
+    const pesoInput = document.getElementById('peso');
+    const previewPontos = document.getElementById('preview-pontos');
+    const previewPeso = document.getElementById('preview-peso');
+    const previewTotal = document.getElementById('preview-total');
+    
+    function updatePreview() {
+        const pontos = parseInt(pontosInput.value) || 0;
+        const peso = parseFloat(pesoInput.value) || 1.0;
+        const total = Math.round(pontos * peso);
+        
+        previewPontos.textContent = pontos;
+        previewPeso.textContent = peso.toFixed(1);
+        previewTotal.textContent = total;
+    }
+    
+    pontosInput.addEventListener('input', updatePreview);
+    pesoInput.addEventListener('input', updatePreview);
+});
+</script>
+{% endblock %}

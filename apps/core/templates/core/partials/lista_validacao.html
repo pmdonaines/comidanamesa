@@ -1,0 +1,194 @@
+<div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col"
+                    class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Família / Responsável
+                </th>
+                <th scope="col"
+                    class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    NIS
+                </th>
+                <th scope="col"
+                    class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Renda Per Capita
+                </th>
+                <th scope="col"
+                    class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Status
+                </th>
+                <th scope="col"
+                    class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Pontuação
+                </th>
+                <th scope="col"
+                    class="px-6 py-4 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    Ações
+                </th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+            {% for validacao in validacoes %}
+            <tr class="hover:bg-blue-50/50 transition-colors group">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div
+                            class="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm border border-gray-200">
+                            {{ validacao.familia.membros.first.nom_pessoa|default:"?"|slice:":1" }}
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors">
+                                {{ validacao.familia.membros.first.nom_pessoa|default:"Sem Responsável" }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                Família: <span class="font-mono">{{ validacao.familia.cod_familiar_fam }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div
+                        class="text-sm text-gray-700 font-mono bg-gray-50 px-2 py-1 rounded inline-block border border-gray-200">
+                        {{ validacao.familia.membros.first.num_nis_pessoa_atual|default:"-" }}
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">
+                        R$ {{ validacao.familia.vlr_renda_media_fam|default:"0.00" }}
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    {% if validacao.status == 'em_analise' and validacao.em_avaliacao_por %}
+                        <!-- Status Em Análise com usuário -->
+                        <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset bg-yellow-50 text-yellow-800 ring-yellow-600/20">
+                            {{ validacao.get_status_display }} por {{ validacao.em_avaliacao_por.username }}
+                        </span>
+                    {% else %}
+                        <!-- Status normal -->
+                        <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
+                            {% if validacao.status == 'aprovado' %}bg-green-50 text-green-700 ring-green-600/20
+                            {% elif validacao.status == 'reprovado' %}bg-red-50 text-red-700 ring-red-600/20
+                            {% elif validacao.status == 'em_analise' %}bg-yellow-50 text-yellow-800 ring-yellow-600/20
+                            {% else %}bg-gray-50 text-gray-600 ring-gray-500/10{% endif %}">
+                            {{ validacao.get_status_display }}
+                        </span>
+                    {% endif %}
+                </td>
+                <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                    <div class="flex items-center gap-1">
+                        <span class="font-medium text-gray-900">{{ validacao.pontuacao_total|default:"0" }}</span>
+                        <span class="text-xs text-gray-400">pts</span>
+                    </div>
+                </td>
+                <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                    <a href="{% url 'validacao_detail' validacao.pk %}"
+                        class="text-emerald-600 hover:text-emerald-900">Avaliar<span class="sr-only">, {{
+                            validacao.familia.membros.first.nom_pessoa }}</span></a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="py-10 text-center text-sm text-gray-500">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        aria-hidden="true">
+                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-semibold text-gray-900">Nenhuma validação encontrada</h3>
+                    <p class="mt-1 text-sm text-gray-500">Tente ajustar os filtros ou realizar uma nova importação.</p>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% if is_paginated %}
+<div class="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+    <div class="flex flex-1 justify-between sm:hidden">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}"
+           hx-get="?page={{ page_obj.previous_page_number }}"
+           hx-target="#lista-validacao"
+           hx-include="[name='q'], [name='status']"
+           class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Anterior</a>
+        {% else %}
+        <span class="relative inline-flex items-center rounded-md border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed">Anterior</span>
+        {% endif %}
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}"
+           hx-get="?page={{ page_obj.next_page_number }}"
+           hx-target="#lista-validacao"
+           hx-include="[name='q'], [name='status']"
+           class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Próximo</a>
+        {% else %}
+        <span class="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed">Próximo</span>
+        {% endif %}
+    </div>
+    <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+        <div>
+            <p class="text-sm text-gray-700">
+                Mostrando <span class="font-medium">{{ page_obj.start_index }}</span> até <span class="font-medium">{{ page_obj.end_index }}</span> de <span class="font-medium">{{ paginator.count }}</span> resultados
+            </p>
+        </div>
+        <div>
+            <nav class="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}"
+                   hx-get="?page={{ page_obj.previous_page_number }}"
+                   hx-target="#lista-validacao"
+                   hx-include="[name='q'], [name='status']"
+                   class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                    <span class="sr-only">Anterior</span>
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                    </svg>
+                </a>
+                {% else %}
+                <span class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-300 ring-1 ring-inset ring-gray-300 cursor-not-allowed">
+                    <span class="sr-only">Anterior</span>
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+                {% endif %}
+
+                {% for i in paginator.page_range %}
+                    {% if page_obj.number == i %}
+                    <span aria-current="page" class="relative z-10 inline-flex items-center bg-emerald-600 px-4 py-2 text-sm font-semibold text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">{{ i }}</span>
+                    {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                    <a href="?page={{ i }}"
+                       hx-get="?page={{ i }}"
+                       hx-target="#lista-validacao"
+                       hx-include="[name='q'], [name='status']"
+                       class="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">{{ i }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}"
+                   hx-get="?page={{ page_obj.next_page_number }}"
+                   hx-target="#lista-validacao"
+                   hx-include="[name='q'], [name='status']"
+                   class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0">
+                    <span class="sr-only">Próximo</span>
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                    </svg>
+                </a>
+                {% else %}
+                <span class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-300 ring-1 ring-inset ring-gray-300 cursor-not-allowed">
+                    <span class="sr-only">Próximo</span>
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+                {% endif %}
+            </nav>
+        </div>
+    </div>
+</div>
+{% endif %}
