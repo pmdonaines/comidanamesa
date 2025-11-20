@@ -11,6 +11,9 @@ class ImportBatch(models.Model):
     imported_at = models.DateTimeField("Data de Importação", auto_now_add=True)
     status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='processing')
     original_file = models.FileField("Arquivo Original", upload_to='imports/cecad/', null=True, blank=True)
+    total_rows = models.IntegerField("Total de Linhas", default=0)
+    processed_rows = models.IntegerField("Linhas Processadas", default=0)
+    error_message = models.TextField("Mensagem de Erro", blank=True)
 
     class Meta:
         verbose_name = "Lote de Importação"

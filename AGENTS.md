@@ -11,3 +11,7 @@
 - Ruff
 - Isort
 - Django CBV
+
+## Instructions
+- Use HTMX to update the progress bar and status
+- Use Django Template in JavaScript in string format

@@ -4,9 +4,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.db.models import Count, Sum, Avg, Q
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from .models import Familia, Pessoa, Beneficio, ImportBatch
 from .services.importer import CecadImporter
 import os
+import threading
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = "cecad/dashboard.html"
@@ -60,16 +62,22 @@ class ImportDataView(LoginRequiredMixin, View):
             original_file=csv_file
         )
 
-        importer = CecadImporter(file_path, batch)
-        success, message = importer.run()
-
-        if success:
-            messages.success(request, message)
-        else:
-            messages.error(request, f'Erro na importação: {message}')
+        # Run import in background thread
+        def run_import():
+            importer = CecadImporter(file_path, batch)
+            importer.run()
+            # Clean up temp file after import
+            try:
+                os.remove(file_path)
+            except:
+                pass
         
-        os.remove(file_path)
-        return redirect('cecad_dashboard')
+        thread = threading.Thread(target=run_import)
+        thread.daemon = True
+        thread.start()
+        
+        # Redirect immediately to progress page
+        return redirect('cecad_import_progress', pk=batch.pk)
 
 class ImportBatchListView(LoginRequiredMixin, ListView):
     model = ImportBatch
@@ -183,3 +191,30 @@ class FamiliaDetailView(LoginRequiredMixin, DetailView):
         context['membros'] = self.object.membros.all()
         context['beneficios'] = self.object.beneficios.all()
         return context
+
+class ImportProgressView(LoginRequiredMixin, DetailView):
+    model = ImportBatch
+    template_name = "cecad/import_progress.html"
+    context_object_name = "batch"
+
+class ImportProgressAPIView(LoginRequiredMixin, View):
+    """API endpoint for HTMX polling of import progress"""
+    
+    def get(self, request, pk):
+        batch = get_object_or_404(ImportBatch, pk=pk)
+        
+        # Calculate progress percentage
+        if batch.total_rows > 0:
+            percent = int((batch.processed_rows / batch.total_rows) * 100)
+        else:
+            percent = 0
+        
+        data = {
+            'status': batch.status,
+            'total_rows': batch.total_rows,
+            'processed_rows': batch.processed_rows,
+            'percent': percent,
+            'error_message': batch.error_message,
+        }
+        
+        return JsonResponse(data)

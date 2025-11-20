@@ -1,0 +1,226 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Importando Dados CECAD - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="md:flex md:items-center md:justify-between mb-8">
+        <div class="min-w-0 flex-1">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                Importação em Andamento
+            </h2>
+            <p class="mt-1 text-sm text-gray-500">{{ batch.description }}</p>
+        </div>
+    </div>
+
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+        <div class="px-4 py-6 sm:p-8">
+            <!-- Progress Container -->
+            <div id="progress-container" 
+                 hx-get="{% url 'cecad_import_progress_api' batch.pk %}"
+                 hx-trigger="every 500ms"
+                 hx-swap="none">
+                
+                <!-- Status Display -->
+                <div id="status-display" class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Status:</span>
+                        <span id="status-badge" class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium">
+                            {{ batch.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Progresso:</span>
+                        <span id="progress-text" class="text-sm text-gray-600">
+                            <span id="processed-count">{{ batch.processed_rows }}</span> / 
+                            <span id="total-count">{{ batch.total_rows }}</span> linhas
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                        <div id="progress-bar" 
+                             class="h-4 bg-emerald-600 transition-all duration-300 ease-out"
+                             style="width: 0%">
+                        </div>
+                    </div>
+                    <div class="text-center mt-2">
+                        <span id="progress-percent" class="text-2xl font-bold text-gray-900">0%</span>
+                    </div>
+                </div>
+
+                <!-- Error Message (hidden by default) -->
+                <div id="error-message" class="hidden rounded-md bg-red-50 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Erro na Importação</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <p id="error-text"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Success Message (hidden by default) -->
+                <div id="success-message" class="hidden rounded-md bg-green-50 p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-green-800">Importação Concluída!</h3>
+                            <div class="mt-2 text-sm text-green-700">
+                                <p>Os dados foram importados com sucesso. Redirecionando...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-x-6 border-t border-gray-900/10 pt-4 mt-6">
+                <a href="{% url 'cecad_dashboard' %}" 
+                   class="text-sm font-semibold leading-6 text-gray-900">
+                    Voltar ao Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    console.log('[Progress] Script loaded');
+
+    // Calculate initial progress on page load
+    function updateProgress(data) {
+        console.log('[Progress] Updating with data:', data);
+        
+        // Update progress
+        document.getElementById('processed-count').textContent = data.processed_rows || 0;
+        document.getElementById('total-count').textContent = data.total_rows || 0;
+        document.getElementById('progress-percent').textContent = data.percent + '%';
+        document.getElementById('progress-bar').style.width = data.percent + '%';
+        
+        console.log('[Progress] Bar width set to:', data.percent + '%');
+        
+        // Update status badge
+        const statusBadge = document.getElementById('status-badge');
+        const statusMap = {
+            'processing': { text: 'Processando', class: 'bg-blue-100 text-blue-700' },
+            'completed': { text: 'Concluído', class: 'bg-green-100 text-green-700' },
+            'error': { text: 'Erro', class: 'bg-red-100 text-red-700' }
+        };
+        
+        const status = statusMap[data.status] || { text: 'Desconhecido', class: 'bg-gray-100 text-gray-700' };
+        statusBadge.textContent = status.text;
+        statusBadge.className = 'inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ' + status.class;
+        
+        // Handle completion
+        if (data.status === 'completed') {
+            console.log('[Progress] Import completed!');
+            document.getElementById('success-message').classList.remove('hidden');
+            const container = document.getElementById('progress-container');
+            if (container) {
+                htmx.trigger(container, 'htmx:abort'); // Stop polling
+            }
+            
+            // Redirect after 2 seconds
+            setTimeout(() => {
+                window.location.href = '{% url "cecad_dashboard" %}';
+            }, 2000);
+        }
+        
+        // Handle error
+        if (data.status === 'error') {
+            console.log('[Progress] Import error:', data.error_message);
+            document.getElementById('error-text').textContent = data.error_message || 'Erro desconhecido';
+            document.getElementById('error-message').classList.remove('hidden');
+            const container = document.getElementById('progress-container');
+            if (container) {
+                htmx.trigger(container, 'htmx:abort'); // Stop polling
+            }
+        }
+    }
+
+    // Set initial progress from backend
+    '{% if batch.total_rows > 0 %}'
+    window.addEventListener('DOMContentLoaded', function() {
+        console.log('[Progress] DOM loaded, setting initial progress');
+        var initialPercent = Math.round(('{{ batch.processed_rows }}' / '{{ batch.total_rows }}') * 100);
+        updateProgress({
+            status: '{{ batch.status }}',
+            total_rows: '{{ batch.total_rows }}',
+            processed_rows: '{{ batch.processed_rows }}',
+            percent: initialPercent,
+            error_message: '{{ batch.error_message|escapejs }}'
+        });
+    });
+    '{% endif %}'
+
+    // Debug: Log all HTMX events
+    document.body.addEventListener('htmx:configRequest', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'progress-container') {
+            console.log('[HTMX] Config request for progress polling');
+        }
+    });
+
+    document.body.addEventListener('htmx:beforeRequest', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'progress-container') {
+            console.log('[HTMX] Before request');
+        }
+    });
+
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'progress-container') {
+            console.log('[HTMX] After request - status:', evt.detail.xhr.status);
+            console.log('[HTMX] Response text:', evt.detail.xhr.responseText);
+        }
+    });
+
+    // Handle HTMX polling responses - try multiple event types
+    document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'progress-container') {
+            console.log('[HTMX] afterOnLoad event triggered');
+            try {
+                const data = JSON.parse(evt.detail.xhr.responseText);
+                updateProgress(data);
+            } catch (e) {
+                console.error('[Progress] Error parsing progress data in afterOnLoad:', e);
+            }
+        }
+    });
+
+    // Also try afterSwap (backup event listener)
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'progress-container') {
+            console.log('[HTMX] afterSwap event triggered');
+        }
+    });
+
+    // Fallback: use standard afterRequest which should always fire
+    document.body.addEventListener('htmx:afterRequest', function(evt) {
+        if (evt.detail.target && evt.detail.target.id === 'progress-container') {
+            if (evt.detail.successful) {
+                console.log('[HTMX] afterRequest (fallback) triggered successfully');
+                try {
+                    const data = JSON.parse(evt.detail.xhr.responseText);
+                    updateProgress(data);
+                } catch (e) {
+                    console.error('[Progress] Error in afterRequest fallback:', e);
+                }
+            }
+        }
+    });
+
+    console.log('[Progress] All event listeners registered');
+</script>
+{% endblock %}

@@ -4,6 +4,8 @@ from . import views
 urlpatterns = [
     path('', views.DashboardView.as_view(), name='cecad_dashboard'),
     path('importar/', views.ImportDataView.as_view(), name='cecad_import'),
+    path('importar/progresso/<int:pk>/', views.ImportProgressView.as_view(), name='cecad_import_progress'),
+    path('importar/progresso/<int:pk>/api/', views.ImportProgressAPIView.as_view(), name='cecad_import_progress_api'),
     path('historico/', views.ImportBatchListView.as_view(), name='cecad_batch_list'),
     path('historico/<int:pk>/', views.ImportBatchDetailView.as_view(), name='cecad_batch_detail'),
     path('comparar/', views.ComparisonView.as_view(), name='cecad_comparison'),

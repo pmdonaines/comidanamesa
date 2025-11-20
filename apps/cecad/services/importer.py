@@ -18,10 +18,11 @@ class CecadImporter:
         """Executa a importação do arquivo CSV."""
         try:
             self.import_batch.status = 'processing'
+            self.import_batch.processed_rows = 0
             self.import_batch.save()
 
             with open(self.file_path, 'r', encoding='utf-8-sig') as f:
-                # Detect delimiter
+                # Count total rows first
                 sample = f.read(1024)
                 f.seek(0)
                 sniffer = csv.Sniffer()
@@ -29,19 +30,36 @@ class CecadImporter:
                     dialect = sniffer.sniff(sample)
                 except csv.Error:
                     dialect = csv.excel
-                    dialect.delimiter = ';' # Fallback default
+                    dialect.delimiter = ';'
                 
+                # Count rows
+                reader = csv.DictReader(f, dialect=dialect)
+                total_rows = sum(1 for _ in reader)
+                self.import_batch.total_rows = total_rows
+                self.import_batch.save()
+                
+                # Reset file pointer for actual processing
+                f.seek(0)
                 reader = csv.DictReader(f, dialect=dialect)
                 
-                with transaction.atomic():
-                    for row in reader:
+                # Process rows - each row in its own transaction for real-time progress
+                for idx, row in enumerate(reader, 1):
+                    # Each row is processed atomically (Familia + Pessoa + Validacao together)
+                    with transaction.atomic():
                         self._process_row(row)
+                    
+                    self.import_batch.processed_rows = idx
+                    # Save progress every 10 rows to reduce DB writes
+                    # This is OUTSIDE the transaction so it's immediately visible to polling
+                    if idx % 10 == 0 or idx == total_rows:
+                        self.import_batch.save(update_fields=['processed_rows'])
             
             self.import_batch.status = 'completed'
             self.import_batch.save()
             return True, "Importação concluída com sucesso."
         except Exception as e:
             self.import_batch.status = 'error'
+            self.import_batch.error_message = str(e)
             self.import_batch.save()
             logger.error(f"Erro na importação: {e}")
             return False, str(e)
@@ -86,9 +104,8 @@ class CecadImporter:
             
             Pessoa.objects.update_or_create(
                 num_nis_pessoa_atual=nis,
-                import_batch=self.import_batch,
+                familia=familia,
                 defaults={
-                    'familia': familia,
                     'nom_pessoa': row.get('p.nom_pessoa', ''),
                     'num_cpf_pessoa': cpf,
                     'dat_nasc_pessoa': self._parse_date(row.get('p.dta_nasc_pessoa')),
