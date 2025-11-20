@@ -149,6 +149,9 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
 
 
     def post(self, request, *args, **kwargs):
+        from django.http import HttpResponse
+        import json
+        
         self.object = self.get_object()
         action = request.POST.get('action')
         
@@ -161,6 +164,9 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
             return redirect('fila_validacao')
         
         if action in ['save_criteria', 'finalize']:
+            # DEBUG: Print POST data
+            print(f"DEBUG: Action={action}, POST keys={list(request.POST.keys())}")
+            
             # Primeiro, resetar todos os critérios para atendido=False
             # (checkboxes desmarcados não enviam dados no POST)
             ValidacaoCriterio.objects.filter(validacao=self.object).update(atendido=False)
@@ -186,7 +192,22 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
                 # Apenas salvar progresso, manter status atual
                 self.object.status = 'em_analise'
                 self.object.save(update_fields=['status', 'observacoes'])
-                messages.success(request, f'Progresso salvo! Pontuação atual: {self.object.pontuacao_total} pontos.')
+                
+                # Detectar se é uma requisição HTMX (auto-save)
+                is_htmx = request.headers.get('HX-Request')
+                
+                if is_htmx:
+                    # Para HTMX, retornar 204 No Content com trigger para atualizar pontuação
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
+                        'autoSaved': {
+                            'pontuacao': self.object.pontuacao_total
+                        }
+                    })
+                    return response
+                else:
+                    # Para submissão manual, adicionar mensagem e redirecionar
+                    messages.success(request, f'Progresso salvo! Pontuação atual: {self.object.pontuacao_total} pontos.')
             
             elif action == 'finalize':
                 # Finalizar validação

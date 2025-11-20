@@ -4,7 +4,39 @@
 {% block title %}Avaliação - {{ validacao.familia.cod_familiar_fam }} - Comida na Mesa{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-7xl" x-data="{ showDetails: true, activeTab: 'desenvolvimento_social' }">
+<div class="mx-auto max-w-7xl" 
+    x-data="{ 
+        showDetails: true, 
+        activeTab: 'desenvolvimento_social',
+        pontuacao: {{ validacao.pontuacao_total }},
+        showSaveSuccess: false,
+        init() {
+            // Initialize all category checkboxes on page load
+            {% for categoria in categorias %}
+            this.updateCategoryCheckbox('{{ categoria.codigo }}');
+            {% endfor %}
+        },
+        toggleCategoryCheckboxes(categoryCode) {
+            const checkboxes = document.querySelectorAll(`input[data-category='${categoryCode}']`);
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        },
+        updateCategoryCheckbox(categoryCode) {
+            const checkboxes = document.querySelectorAll(`input[data-category='${categoryCode}']`);
+            const categoryCheckbox = document.getElementById(`select-all-${categoryCode}`);
+            if (categoryCheckbox) {
+                const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+                const totalCount = checkboxes.length;
+                categoryCheckbox.checked = checkedCount === totalCount;
+                categoryCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+            }
+        }
+    }"
+    @auto-saved.window="
+        pontuacao = $event.detail.pontuacao;
+        showSaveSuccess = true;
+        setTimeout(() => showSaveSuccess = false, 2000);
+    ">
 
     <!-- Sticky Header -->
     <div
@@ -16,7 +48,21 @@
         <div class="flex items-center gap-3">
             <div class="text-right mr-4">
                 <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Pontuação</div>
-                <div class="text-2xl font-bold text-emerald-600">{{ validacao.pontuacao_total }} pts</div>
+                <div class="text-2xl font-bold text-emerald-600" x-text="pontuacao + ' pts'"></div>
+            </div>
+            <!-- Save success indicator -->
+            <div x-show="showSaveSuccess" 
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-90"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-90"
+                class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md text-xs font-medium border border-emerald-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Salvo</span>
             </div>
             <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
                 {% if validacao.status == 'aprovado' %}bg-green-50 text-green-700 ring-green-600/20
@@ -123,17 +169,32 @@
 
         <!-- Right Column: Validation Checklist with Tabs -->
         <div class="lg:col-span-2">
-            <form method="post" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+            <form method="post" 
+                hx-post="{% url 'validacao_detail' validacao.pk %}"
+                hx-trigger="change delay:500ms from:input[type='checkbox']"
+                hx-swap="none"
+                hx-indicator="#save-indicator"
+                class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="save_criteria">
 
                 <div class="px-4 py-5 sm:p-6">
                     <div class="flex items-center justify-between mb-6">
                         <h3 class="text-base font-semibold leading-6 text-gray-900">Checklist de Elegibilidade</h3>
-                        <button type="submit"
-                            class="text-sm bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-md hover:bg-emerald-100 font-medium transition-colors border border-emerald-200">
-                            Salvar Progresso
-                        </button>
+                        <div class="flex items-center gap-3">
+                            <!-- Auto-save indicator -->
+                            <div id="save-indicator" class="htmx-indicator flex items-center gap-2 text-xs text-gray-500">
+                                <svg class="animate-spin h-4 w-4 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="font-medium">Salvando...</span>
+                            </div>
+                            <button type="submit"
+                                class="text-sm bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-md hover:bg-emerald-100 font-medium transition-colors border border-emerald-200">
+                                Salvar Progresso
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Tabs Navigation -->
@@ -181,8 +242,23 @@
                         x-transition:enter-end="opacity-100 transform scale-100">
                         
                         <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                            <h4 class="text-sm font-semibold text-gray-900 mb-1">{{ categoria.nome }}</h4>
-                            <p class="text-xs text-gray-600">{{ categoria.descricao }}</p>
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-semibold text-gray-900 mb-1">{{ categoria.nome }}</h4>
+                                    <p class="text-xs text-gray-600">{{ categoria.descricao }}</p>
+                                </div>
+                                <div class="ml-4 flex items-center">
+                                    <input 
+                                        type="checkbox" 
+                                        id="select-all-{{ categoria.codigo }}"
+                                        @change="toggleCategoryCheckboxes('{{ categoria.codigo }}')"
+                                        class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer"
+                                    >
+                                    <label for="select-all-{{ categoria.codigo }}" class="ml-2 text-xs font-medium text-gray-700 cursor-pointer select-none whitespace-nowrap">
+                                        Selecionar Todos
+                                    </label>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="space-y-4">
@@ -191,7 +267,12 @@
                                 class="relative flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors 
                                 {% if vc.atendido %}border-emerald-200 bg-emerald-50/50{% else %}border-gray-200{% endif %}">
                                 <div class="flex h-6 items-center">
-                                    <input id="criterio_{{ vc.criterio.id }}" name="criterio_{{ vc.criterio.id }}" type="checkbox"
+                                    <input 
+                                        id="criterio_{{ vc.criterio.id }}" 
+                                        name="criterio_{{ vc.criterio.id }}" 
+                                        type="checkbox"
+                                        data-category="{{ categoria.codigo }}"
+                                        @change="updateCategoryCheckbox('{{ categoria.codigo }}')"
                                         {% if vc.atendido %}checked{% endif %}
                                         class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
                                 </div>
@@ -239,4 +320,13 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Bridge HTMX trigger events to Alpine.js
+    document.body.addEventListener('autoSaved', function(event) {
+        window.dispatchEvent(new CustomEvent('auto-saved', {
+            detail: event.detail
+        }));
+    });
+</script>
 {% endblock %}
