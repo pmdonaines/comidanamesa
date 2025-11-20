@@ -483,6 +483,15 @@ class CriterioCreateView(LoginRequiredMixin, TemplateView):
 
         try:
             categoria = Categoria.objects.get(pk=categoria_id)
+            # Condições Avançadas
+            idade_minima = request.POST.get('idade_minima')
+            idade_minima = int(idade_minima) if idade_minima else None
+            
+            idade_maxima = request.POST.get('idade_maxima')
+            idade_maxima = int(idade_maxima) if idade_maxima else None
+            
+            sexo_necessario = request.POST.get('sexo_necessario') or None
+
             Criterio.objects.create(
                 descricao=descricao,
                 codigo=codigo,
@@ -492,7 +501,10 @@ class CriterioCreateView(LoginRequiredMixin, TemplateView):
                 ativo=ativo,
                 aplica_se_a_sem_criancas=request.POST.get('aplica_se_a_sem_criancas') == 'on',
                 aplica_se_a_rf_homem=request.POST.get('aplica_se_a_rf_homem') == 'on',
-                aplica_se_a_unipessoais=request.POST.get('aplica_se_a_unipessoais') == 'on'
+                aplica_se_a_unipessoais=request.POST.get('aplica_se_a_unipessoais') == 'on',
+                idade_minima=idade_minima,
+                idade_maxima=idade_maxima,
+                sexo_necessario=sexo_necessario
             )
             messages.success(request, f'Critério "{descricao}" criado com sucesso!')
             return redirect('criterio_list')
@@ -532,6 +544,21 @@ class CriterioUpdateView(LoginRequiredMixin, TemplateView):
         criterio.aplica_se_a_sem_criancas = request.POST.get('aplica_se_a_sem_criancas') == 'on'
         criterio.aplica_se_a_rf_homem = request.POST.get('aplica_se_a_rf_homem') == 'on'
         criterio.aplica_se_a_unipessoais = request.POST.get('aplica_se_a_unipessoais') == 'on'
+        
+        # Condições Avançadas
+        idade_minima = request.POST.get('idade_minima')
+        if idade_minima:
+            criterio.idade_minima = int(idade_minima)
+        else:
+            criterio.idade_minima = None
+            
+        idade_maxima = request.POST.get('idade_maxima')
+        if idade_maxima:
+            criterio.idade_maxima = int(idade_maxima)
+        else:
+            criterio.idade_maxima = None
+            
+        criterio.sexo_necessario = request.POST.get('sexo_necessario') or None
         
         if not criterio.descricao:
             messages.error(request, 'Descrição é obrigatória!')

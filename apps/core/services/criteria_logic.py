@@ -38,10 +38,42 @@ class CriteriaAssociator:
                 continue
                 
             # 3. Famílias Unipessoais
-            # Se o critério diz que NÃO se aplica a unipessoais (aplica_se_a_unipessoais=False)
-            # E a família É unipessoal -> Ignorar
             if not criterio.aplica_se_a_unipessoais and is_unipessoal:
                 continue
+                
+            # 4. Condições Avançadas (Idade/Sexo)
+            # Se houver restrição de idade ou sexo, verificar se ALGUÉM na família atende
+            if criterio.idade_minima is not None or criterio.idade_maxima is not None or criterio.sexo_necessario:
+                has_matching_member = False
+                from datetime import date
+                today = date.today()
+                
+                for membro in familia.membros.all():
+                    # Verificar Sexo
+                    if criterio.sexo_necessario and membro.cod_sexo_pessoa != criterio.sexo_necessario:
+                        continue
+                        
+                    # Verificar Idade
+                    if membro.dat_nasc_pessoa:
+                        age = today.year - membro.dat_nasc_pessoa.year - (
+                            (today.month, today.day) < (membro.dat_nasc_pessoa.month, membro.dat_nasc_pessoa.day)
+                        )
+                        
+                        # Checar Min
+                        if criterio.idade_minima is not None and age < criterio.idade_minima:
+                            continue
+                            
+                        # Checar Max
+                        if criterio.idade_maxima is not None and age > criterio.idade_maxima:
+                            continue
+                            
+                        # Se passou por tudo, este membro atende!
+                        has_matching_member = True
+                        break
+                
+                # Se nenhum membro atende às condições avançadas, pular critério
+                if not has_matching_member:
+                    continue
             
             to_create.append(
                 ValidacaoCriterio(

@@ -68,7 +68,29 @@ class Criterio(models.Model):
     aplica_se_a_unipessoais = models.BooleanField(
         "Aplica-se a famílias unipessoais?", 
         default=True,
-        help_text="Se desmarcado, este critério será ignorado para famílias de uma única pessoa."
+        help_text="Se desmarcado, este critério NÃO será exigido para famílias de uma única pessoa."
+    )
+    
+    # Condições Avançadas (Baseadas nos Membros)
+    idade_minima = models.IntegerField(
+        "Idade Mínima do Membro", 
+        null=True, 
+        blank=True,
+        help_text="Critério só se aplica se houver membro com idade igual ou superior a esta."
+    )
+    idade_maxima = models.IntegerField(
+        "Idade Máxima do Membro", 
+        null=True, 
+        blank=True,
+        help_text="Critério só se aplica se houver membro com idade igual ou inferior a esta."
+    )
+    sexo_necessario = models.CharField(
+        "Sexo Necessário",
+        max_length=1,
+        choices=[('1', 'Masculino'), ('2', 'Feminino')],
+        null=True,
+        blank=True,
+        help_text="Critério só se aplica se houver membro deste sexo (respeitando a faixa etária, se definida)."
     )
     
     class Meta:

@@ -18,15 +18,18 @@ Implementamos a funcionalidade que permite definir condições para a aplicaçã
     - `aplica_se_a_sem_criancas` (Padrão: Sim)
     - `aplica_se_a_rf_homem` (Padrão: Sim)
     - `aplica_se_a_unipessoais` (Padrão: Sim)
+- **Novos Campos Avançados**:
+    - `idade_minima`: Idade mínima de um membro para o critério aplicar.
+    - `idade_maxima`: Idade máxima de um membro para o critério aplicar.
+    - `sexo_necessario`: Sexo específico (M/F) que um membro deve ter.
 
 ### 3. Interface de Gestão de Critérios
-- Atualizado o formulário de criação/edição de critérios para incluir a seção "Condições de Aplicação".
+- Atualizado o formulário de criação/edição de critérios para incluir a seção "Condições de Aplicação" e "Condições Avançadas".
 
 ### 4. Lógica de Validação
-- Criado serviço `CriteriaAssociator` em `apps/core/services/criteria_logic.py`.
-- Atualizado `ValidacaoDetailView` para associar critérios dinamicamente ao abrir a validação, respeitando as condições configuradas.
-- Atualizado comando `associar_criterios` para aplicar as regras em massa.
-- Atualizado `signals.py` para respeitar as regras ao criar novos critérios.
+- Atualizado serviço `CriteriaAssociator` para verificar idade e sexo dos membros da família.
+- Se um critério tem `idade_maxima=18`, ele só será aplicado se a família tiver alguém com 18 anos ou menos.
+- Se tem `sexo_necessario='F'` e `idade_minima=25`, só aplica se houver mulher com 25+ anos.
 
 ## Como Testar
 
@@ -39,11 +42,9 @@ Implementamos a funcionalidade que permite definir condições para a aplicaçã
    - Na seção "Condições de Aplicação", desmarque "Aplica-se a famílias unipessoais" ou "Aplica-se a famílias sem crianças".
    - Salve.
 
-3. **Verificar Validação**:
-   - Abra uma validação de uma família que se encaixe na condição (ex: unipessoal).
-   - O critério configurado NÃO deve aparecer na lista de avaliação.
-   - Abra uma validação de uma família que NÃO se encaixe (ex: família com crianças).
-   - O critério DEVE aparecer.
+4. **Popular Critérios Padrão**:
+   - O comando `uv run python manage.py popular_criterios` foi atualizado para incluir os critérios oficiais de 2026 com as regras condicionais já configuradas.
+   - Execute-o para atualizar a base de dados com os novos textos e regras.
 
 ## Arquivos Modificados
 - `apps/cecad/models.py`
@@ -52,5 +53,6 @@ Implementamos a funcionalidade que permite definir condições para a aplicaçã
 - `apps/core/views.py`
 - `apps/core/signals.py`
 - `apps/core/management/commands/associar_criterios.py`
+- `apps/core/management/commands/popular_criterios.py`
 - `apps/core/templates/core/criterio_form.html`
 - `apps/core/services/criteria_logic.py` (Novo)

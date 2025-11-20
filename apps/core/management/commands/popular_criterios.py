@@ -3,7 +3,7 @@ from apps.core.models import Categoria, Criterio
 
 
 class Command(BaseCommand):
-    help = 'Popula as 4 categorias e os  10 critérios de elegibilidade do programa Comida na Mesa'
+    help = 'Popula as 4 categorias e os 18 critérios de elegibilidade do programa Comida na Mesa'
 
     CATEGORIAS = [
         {
@@ -45,85 +45,215 @@ class Command(BaseCommand):
         {
             'codigo': 'renda_familiar',
             'categoria_codigo': 'desenvolvimento_social',
-            'descricao': 'Famílias em extrema vulnerabilidade social com renda per capita de até R$ 218,00',
-            'pontos': 15,
+            'descricao': 'Famílias em situação de extrema vulnerabilidade social com renda per capita de até R$ 1/4 do salário mínimo',
+            'pontos': 12,
             'peso': 2.0,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
         },
         {
             'codigo': 'cadastro_unico',
             'categoria_codigo': 'desenvolvimento_social',
-            'descricao': 'Cadastro Único do município de Dona Inês/PB atualizado nos últimos 2 anos',
-            'pontos': 10,
+            'descricao': 'Famílias com Cadastro Único no município de Dona Inês/PB, atualizado no período de 2 anos',
+            'pontos': 8,
             'peso': 1.5,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
+        },
+        {
+            'codigo': 'cpf_regular',
+            'categoria_codigo': 'desenvolvimento_social',
+            'descricao': 'RF com CPF regular perante a Receita Federal',
+            'pontos': 5,
+            'peso': 1.0,
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
         },
         # Saúde
         {
             'codigo': 'exame_citopatologico',
             'categoria_codigo': 'saude',
-            'descricao': 'Realização nos últimos 2 anos de exame citopatológico em mulheres (25–59 anos)',
-            'pontos': 5,
+            'descricao': 'Realização nos últimos 2 anos de exames citopatológico nas mulheres (25 a 59 anos)',
+            'pontos': 6,
             'peso': 1.0,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True, # Deve ser True para permitir verificação de outros membros (esposa/filha)
+            'aplica_se_a_unipessoais': True,
+            'idade_minima': 25,
+            'idade_maxima': 59,
+            'sexo_necessario': '2' # Feminino
         },
         {
             'codigo': 'vacinacao_primeira_infancia',
             'categoria_codigo': 'saude',
-            'descricao': 'Atualização da caderneta de vacinação na primeira infância',
-            'pontos': 8,
+            'descricao': 'Atualização da caderneta de vacinação na primeira infância (0 a 4 anos)',
+            'pontos': 7,
             'peso': 1.2,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True, # True para deixar o filtro de idade decidir
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True,
+            'idade_minima': 0,
+            'idade_maxima': 4
         },
         {
             'codigo': 'vacinacao_adolescentes',
             'categoria_codigo': 'saude',
-            'descricao': 'Atualização da caderneta de vacinação de adolescentes',
-            'pontos': 8,
+            'descricao': 'Atualização da caderneta de vacinação de adolescentes (9 a 14 anos)',
+            'pontos': 7,
             'peso': 1.2,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True, # True para deixar o filtro de idade decidir
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True,
+            'idade_minima': 9,
+            'idade_maxima': 14
         },
         {
             'codigo': 'vacinacao_covid19',
             'categoria_codigo': 'saude',
-            'descricao': 'Atualização da vacinação COVID‑19',
+            'descricao': 'Atualização da vacinação covid-19',
             'pontos': 5,
             'peso': 1.0,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
         },
         # Educação
         {
-            'codigo': 'eja_2025',
+            'codigo': 'eja_2026',
             'categoria_codigo': 'educacao',
-            'descricao': 'Alunos matriculados no EJA em 2025 (≥17 anos) ou certificado de conclusão',
+            'descricao': 'Alunos matriculados na EJA no ano de 2026, 17 anos ou mais...',
             'pontos': 7,
             'peso': 1.1,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True,
+            'idade_minima': 17
         },
         {
-            'codigo': 'matricula_ativa_2025',
+            'codigo': 'matricula_ativa_2026',
             'categoria_codigo': 'educacao',
-            'descricao': 'Matrícula ativa para o ano letivo 2025 (até 18 anos completos) ou certificado de conclusão',
+            'descricao': 'Matrícula ativa para o ano letivo 2026 (até os 18 anos completos)',
             'pontos': 10,
             'peso': 1.3,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True, # Controlado por idade_maxima
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True,
+            'idade_maxima': 18
         },
         {
             'codigo': 'frequencia_escolar',
             'categoria_codigo': 'educacao',
-            'descricao': 'Frequência ≥75% da carga horária do ano/série (verificações bimestrais)',
+            'descricao': 'Frequência de 75% do total da carga horária letiva do ano (averiguações bimestrais)',
             'pontos': 8,
             'peso': 1.2,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True, # Controlado por idade_maxima (implícito que é para quem estuda)
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True,
+            'idade_maxima': 18 # Assumindo escolaridade regular
         },
         # Documentação
         {
-            'codigo': 'documentacao',
+            'codigo': 'cpf_responsavel_familiar',
             'categoria_codigo': 'documentacao',
-            'descricao': 'Documentação (apresentação e validade dos documentos)',
-            'pontos': 10,
+            'descricao': 'CPF do responsável familiar',
+            'pontos': 5,
             'peso': 1.5,
-            'ativo': True
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
+        },
+        {
+            'codigo': 'cpf_certidao_filhos',
+            'categoria_codigo': 'documentacao',
+            'descricao': 'CPF ou Certidão de Nascimento dos filhos com idade de 0 até 18 anos',
+            'pontos': 3,
+            'peso': 1.0,
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True, # Controlado por idade_maxima
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True,
+            'idade_maxima': 18
+        },
+        {
+            'codigo': 'cpf_membros_composicao',
+            'categoria_codigo': 'documentacao',
+            'descricao': 'CPF de todos os membros da Composição familiar (informadas no Cadastro Único)',
+            'pontos': 3,
+            'peso': 1.0,
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
+        },
+        {
+            'codigo': 'quitacao_eleitoral',
+            'categoria_codigo': 'documentacao',
+            'descricao': 'Certidão/Comprovante de quitação eleitoral (Zona 014 – Município de Dona Inês)',
+            'pontos': 3,
+            'peso': 1.0,
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True,
+            'idade_minima': 18 # Idade mínima para votar
+        },
+        {
+            'codigo': 'comprovante_residencia',
+            'categoria_codigo': 'documentacao',
+            'descricao': 'Comprovante de Residência atualizado',
+            'pontos': 4,
+            'peso': 1.0,
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
+        },
+        {
+            'codigo': 'declaracao_educacao',
+            'categoria_codigo': 'documentacao',
+            'descricao': 'Declaração de comprovação de critérios na Educação',
+            'pontos': 3,
+            'peso': 1.0,
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
+        },
+        {
+            'codigo': 'declaracao_saude',
+            'categoria_codigo': 'documentacao',
+            'descricao': 'Declaração de comprovação de critérios na Saúde',
+            'pontos': 3,
+            'peso': 1.0,
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
+        },
+        {
+            'codigo': 'folha_resumo_cadunico',
+            'categoria_codigo': 'documentacao',
+            'descricao': 'Folha Resumo do Cadastramento Único do Governo Federal',
+            'pontos': 1,
+            'peso': 0.5,
+            'ativo': True,
+            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_rf_homem': True,
+            'aplica_se_a_unipessoais': True
         },
     ]
 

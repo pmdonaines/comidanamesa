@@ -255,6 +255,48 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Condições Avançadas -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="text-sm font-medium text-gray-900 mb-4">Condições Avançadas (Baseadas nos Membros)</h4>
+                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+                            <!-- Idade Mínima -->
+                            <div>
+                                <label for="idade_minima" class="block text-sm font-medium leading-6 text-gray-900">Idade Mínima</label>
+                                <div class="mt-2">
+                                    <input type="number" name="idade_minima" id="idade_minima" min="0" max="120"
+                                        value="{{ criterio.idade_minima|default:'' }}"
+                                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                                </div>
+                            </div>
+
+                            <!-- Idade Máxima -->
+                            <div>
+                                <label for="idade_maxima" class="block text-sm font-medium leading-6 text-gray-900">Idade Máxima</label>
+                                <div class="mt-2">
+                                    <input type="number" name="idade_maxima" id="idade_maxima" min="0" max="120"
+                                        value="{{ criterio.idade_maxima|default:'' }}"
+                                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                                </div>
+                            </div>
+
+                            <!-- Sexo Necessário -->
+                            <div>
+                                <label for="sexo_necessario" class="block text-sm font-medium leading-6 text-gray-900">Sexo Necessário</label>
+                                <div class="mt-2">
+                                    <select id="sexo_necessario" name="sexo_necessario"
+                                        class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6">
+                                        <option value="">Qualquer</option>
+                                        <option value="1" {% if criterio.sexo_necessario == '1' %}selected{% endif %}>Masculino</option>
+                                        <option value="2" {% if criterio.sexo_necessario == '2' %}selected{% endif %}>Feminino</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="mt-2 text-xs text-gray-500">
+                            Se preenchido, o critério só será aplicado se houver pelo menos um membro na família que atenda a <strong>todas</strong> as condições avançadas especificadas (idade e sexo).
+                        </p>
+                    </div>
                 </div>
             </div>
 
