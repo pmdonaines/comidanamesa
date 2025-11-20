@@ -2,6 +2,10 @@
 
 Sistema para cadastro e consulta dos beneficiários do programa "Comida na Mesa" — Município de Dona Inês (PB). O sistema importa a base do CECAD/CadÚnico e permite que operadores validem critérios de elegibilidade a partir da documentação apresentada.
 
+## Prévia do Sistema
+
+![Screenshot do Sistema](screenshort.png)
+
 Resumo rápido
 - Linguagem: Python 3.13
 - Framework: Django (>=5.2.8)
