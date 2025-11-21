@@ -103,11 +103,11 @@
                     <td class="whitespace-nowrap px-3 py-4 text-sm">
                         <a href="{% url 'validacao_view' validacao.pk %}" 
                            class="text-emerald-600 hover:text-emerald-900 font-medium hover:underline">
-                            {{ validacao.familia.membros.first.nom_pessoa|default:"-" }}
+                            {{ validacao.familia.responsavel_familiar.nom_pessoa|default:"-" }}
                         </a>
                     </td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {{ validacao.familia.membros.first.num_nis_pessoa_atual|default:"-" }}
+                        {{ validacao.familia.responsavel_familiar.num_nis_pessoa_atual|default:"-" }}
                     </td>
                     <td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                         R$ {{ validacao.familia.vlr_renda_media_fam }}

@@ -35,11 +35,11 @@
                     <div class="flex items-center">
                         <div
                             class="flex-shrink-0 h-10 w-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-sm border border-gray-200">
-                            {{ validacao.familia.membros.first.nom_pessoa|default:"?"|slice:":1" }}
+                            {{ validacao.familia.responsavel_familiar.nom_pessoa|default:"?"|slice:":1" }}
                         </div>
                         <div class="ml-4">
                             <div class="text-sm font-medium text-gray-900 group-hover:text-blue-700 transition-colors">
-                                {{ validacao.familia.membros.first.nom_pessoa|default:"Sem Responsável" }}
+                                {{ validacao.familia.responsavel_familiar.nom_pessoa|default:"Sem Responsável" }}
                             </div>
                             <div class="text-xs text-gray-500">
                                 Família: <span class="font-mono">{{ validacao.familia.cod_familiar_fam }}</span>
@@ -50,7 +50,7 @@
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div
                         class="text-sm text-gray-700 font-mono bg-gray-50 px-2 py-1 rounded inline-block border border-gray-200">
-                        {{ validacao.familia.membros.first.num_nis_pessoa_atual|default:"-" }}
+                        {{ validacao.familia.responsavel_familiar.num_nis_pessoa_atual|default:"-" }}
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -84,7 +84,7 @@
                 <td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                     <a href="{% url 'validacao_detail' validacao.pk %}"
                         class="text-emerald-600 hover:text-emerald-900">Avaliar<span class="sr-only">, {{
-                            validacao.familia.membros.first.nom_pessoa }}</span></a>
+                            validacao.familia.responsavel_familiar.nom_pessoa }}</span></a>
                 </td>
             </tr>
             {% empty %}
