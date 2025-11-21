@@ -18,18 +18,26 @@
             {% endfor %}
         },
         toggleCategoryCheckboxes(categoryCode) {
-            const checkboxes = document.querySelectorAll(`input[data-category='${categoryCode}']`);
+            const checkboxes = document.querySelectorAll(`input[data-category='${categoryCode}']:not(:disabled)`);
             const allChecked = Array.from(checkboxes).every(cb => cb.checked);
             checkboxes.forEach(cb => cb.checked = !allChecked);
         },
         updateCategoryCheckbox(categoryCode) {
-            const checkboxes = document.querySelectorAll(`input[data-category='${categoryCode}']`);
+            const checkboxes = document.querySelectorAll(`input[data-category='${categoryCode}']:not(:disabled)`);
             const categoryCheckbox = document.getElementById(`select-all-${categoryCode}`);
             if (categoryCheckbox) {
                 const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
                 const totalCount = checkboxes.length;
-                categoryCheckbox.checked = checkedCount === totalCount;
-                categoryCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+                
+                if (totalCount === 0) {
+                    categoryCheckbox.checked = false;
+                    categoryCheckbox.disabled = true;
+                    categoryCheckbox.indeterminate = false;
+                } else {
+                    categoryCheckbox.disabled = false;
+                    categoryCheckbox.checked = checkedCount === totalCount;
+                    categoryCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+                }
             }
         }
     }"
@@ -279,8 +287,8 @@
                         <div class="space-y-4">
                             {% for vc in criterios_por_categoria|dict_get:categoria %}
                             <div
-                                class="relative flex items-start p-4 border rounded-lg hover:bg-gray-50 transition-colors 
-                                {% if vc.atendido %}border-emerald-200 bg-emerald-50/50{% else %}border-gray-200{% endif %}">
+                                class="relative flex items-start p-4 border rounded-lg transition-colors 
+                                {% if not vc.aplicavel %}bg-gray-50 border-gray-200 opacity-75{% elif vc.atendido %}border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50{% else %}border-gray-200 hover:bg-gray-50{% endif %}">
                                 <div class="flex h-6 items-center">
                                     <input 
                                         id="criterio_{{ vc.criterio.id }}" 
@@ -289,13 +297,23 @@
                                         data-category="{{ categoria.codigo }}"
                                         @change="updateCategoryCheckbox('{{ categoria.codigo }}')"
                                         {% if vc.atendido %}checked{% endif %}
-                                        class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600">
+                                        {% if not vc.aplicavel %}disabled{% endif %}
+                                        class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 disabled:text-gray-400 disabled:cursor-not-allowed">
                                 </div>
                                 <div class="ml-3 text-sm leading-6 flex-1">
                                     <label for="criterio_{{ vc.criterio.id }}"
-                                        class="font-medium text-gray-900 cursor-pointer select-none">
+                                        class="font-medium text-gray-900 {% if not vc.aplicavel %}cursor-not-allowed text-gray-500{% else %}cursor-pointer select-none{% endif %}">
                                         {{ vc.criterio.descricao }}
                                     </label>
+                                    
+                                    {% if not vc.aplicavel %}
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                                            Não aplicável: {{ vc.observacao|default:"Critério não se aplica a esta família" }}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+
                                     <p class="text-gray-500 text-xs mt-1">Peso: {{ vc.criterio.peso }} • Pontos: {{ vc.criterio.pontos }} • Pontuação máxima: {{ vc.criterio.pontos|multiply:vc.criterio.peso|floatformat:1 }} pts</p>
                                 </div>
                             </div>

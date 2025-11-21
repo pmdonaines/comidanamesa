@@ -117,8 +117,7 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
         
         # Buscar todos os critérios avaliados
         criterios_avaliados = ValidacaoCriterio.objects.filter(
-            validacao=self.object,
-            aplicavel=True  # Apenas mostrar critérios aplicáveis na interface
+            validacao=self.object
         ).select_related('criterio', 'criterio__categoria').order_by('criterio__categoria__ordem', 'criterio__codigo')
         
         # Agrupar por categoria
