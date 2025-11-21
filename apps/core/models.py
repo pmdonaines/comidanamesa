@@ -92,6 +92,12 @@ class Criterio(models.Model):
         blank=True,
         help_text="Critério só se aplica se houver membro deste sexo (respeitando a faixa etária, se definida)."
     )
+    parentescos_permitidos = models.CharField(
+        "Parentescos Permitidos",
+        max_length=50,
+        blank=True,
+        help_text="Códigos de parentesco permitidos (separados por vírgula). Ex: 1,2 para RF e Cônjuge."
+    )
     
     class Meta:
         verbose_name = "Critério"

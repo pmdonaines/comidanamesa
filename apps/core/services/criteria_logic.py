@@ -58,6 +58,16 @@ class CriteriaAssociator:
                     # Verificar Sexo
                     if criterio.sexo_necessario and membro.cod_sexo_pessoa != criterio.sexo_necessario:
                         continue
+
+                    # Verificar Parentesco
+                    if criterio.parentescos_permitidos:
+                        try:
+                            allowed_codes = [int(c.strip()) for c in criterio.parentescos_permitidos.split(',') if c.strip()]
+                            if membro.cod_parentesco_rf_pessoa not in allowed_codes:
+                                continue
+                        except ValueError:
+                            # Se houver erro na configuração, logar ou ignorar (aqui vamos ignorar e considerar não atendido por segurança)
+                            continue
                         
                     # Verificar Idade
                     if membro.dat_nasc_pessoa:

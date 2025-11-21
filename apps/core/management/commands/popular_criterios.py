@@ -88,7 +88,8 @@ class Command(BaseCommand):
             'aplica_se_a_unipessoais': True,
             'idade_minima': 25,
             'idade_maxima': 59,
-            'sexo_necessario': '2' # Feminino
+            'sexo_necessario': '2', # Feminino
+            'parentescos_permitidos': '1,2' # RF ou Cônjuge
         },
         {
             'codigo': 'vacinacao_primeira_infancia',
