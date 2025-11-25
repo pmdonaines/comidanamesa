@@ -21,7 +21,7 @@ services:
       - 8000
     environment:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/comidanamesa
-      - DEBUG=0
+      - DEBUG=1
       - ALLOWED_HOSTS=localhost,127.0.0.1,web,*
       - SECRET_KEY=change_me_in_production
     depends_on:
