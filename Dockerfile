@@ -40,6 +40,6 @@ EXPOSE 8000
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Run gunicorn
-CMD ["uv", "run", "gunicorn", "comidanamesa.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["uv", "run", "gunicorn", "comidanamesa.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "3000", "--workers", "2", "--threads", "2"]
 
 
