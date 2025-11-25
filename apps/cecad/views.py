@@ -51,7 +51,10 @@ class ImportDataView(LoginRequiredMixin, View):
             return redirect('cecad_import')
 
         # Save temporary file
-        file_path = f'/tmp/{csv_file.name}'
+        import uuid
+        ext = os.path.splitext(csv_file.name)[1]
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        file_path = f'/tmp/{unique_filename}'
         with open(file_path, 'wb+') as destination:
             for chunk in csv_file.chunks():
                 destination.write(chunk)

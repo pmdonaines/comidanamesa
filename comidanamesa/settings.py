@@ -194,3 +194,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = '/login/'
+
+# Configuração de Upload
+# Permitir uploads de até 100MB (em bytes) para corresponder ao Nginx
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
+

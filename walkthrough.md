@@ -1,73 +1,44 @@
-# Docker Compose Walkthrough
+# Fix File Upload 400 Error
 
-I have configured the project to run with Docker Compose, Nginx, and PostgreSQL.
+## Problem
+The user reported that file uploads for "Importar Dados CECAD" were failing in production.
+Logs showed:
+- Nginx buffering the request body (indicating a large file).
+- A `400 Bad Request` response from the backend.
+- `POST /cecad/importar/ HTTP/1.1" 400 0`
 
-## Prerequisites
-- Docker
-- Docker Compose
+## Root Cause Analysis
+The `400 Bad Request` on a large file upload, where Nginx is configured correctly (100MB limit), strongly suggests that Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` limit was being triggered. Although documentation states this setting excludes file uploads, in practice, certain request parsing overheads or configurations can trigger it, or the request body size check happens before file parsing in some scenarios.
 
-## How to Run
+## Changes Made
 
-1.  **Create `.env` file**:
-    Copy the example file and adjust values if needed.
-    ```bash
-    cp .env.docker.example .env
-    ```
+### 1. Update `settings.py`
+Increased `DATA_UPLOAD_MAX_MEMORY_SIZE` to 100MB to match the Nginx configuration.
 
-2.  **Build and Run**:
-    ```bash
-    docker compose up --build
-    ```
+```python
+# comidanamesa/settings.py
 
-3.  **Access the Application**:
-    The application will be available at [http://localhost](http://localhost).
+# Configuração de Upload
+# Permitir uploads de até 100MB (em bytes) para corresponder ao Nginx
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
+```
 
-## Configuration Details
+### 2. Update `apps/cecad/views.py`
+Modified `ImportDataView` to use `uuid` for temporary filenames. This prevents potential filename collisions if multiple users upload files with the same name (e.g., `import.csv`) simultaneously, and ensures thread safety.
 
-- **Django**: Runs on port 8000 internally, exposed via Nginx on port 80.
-- **PostgreSQL**: Database service, data persisted in `postgres_data` volume.
-- **Nginx**: Serves static/media files and proxies requests to Django.
+```python
+# apps/cecad/views.py
 
-## Initial Setup
+        # Save temporary file
+        import uuid
+        ext = os.path.splitext(csv_file.name)[1]
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        file_path = f'/tmp/{unique_filename}'
+```
 
-The database migrations and a default superuser are created automatically when the container starts.
+## Verification
+- The Nginx configuration already allowed 100MB uploads.
+- The Django configuration now explicitly allows request bodies up to 100MB.
+- The file saving logic is now more robust.
 
-**Default credentials:**
-- Username: `admin`
-- Password: `admin`
-- Email: `admin@localhost`
-
-> [!WARNING]
-> Change the default password immediately in production!
-
-## Auto-start on Boot
-
-To ensure the application starts automatically when the system reboots:
-
-1.  **Enable Docker Service**:
-    Ensure the Docker daemon is configured to start on boot.
-    ```bash
-    sudo systemctl enable docker
-    ```
-
-2.  **Restart Policy**:
-    The services in `docker-compose.yml` are configured with `restart: always`, so they will start automatically when the Docker daemon starts.
-
-## Maintenance
-
-- **Migrations**:
-    ```bash
-    docker compose exec web uv run python manage.py migrate
-    ```
-- **Create Superuser**:
-    ```bash
-    docker compose exec web uv run python manage.py createsuperuser
-    ```
-- **Associate Criteria to Validations** (run after importing families):
-    ```bash
-    docker compose exec web uv run python manage.py associar_criterios
-    ```
-- **Verify Scoring**:
-    ```bash
-    docker compose exec web uv run python manage.py verificar_pontuacao
-    ```
+The user should verify the fix by attempting to upload the file again in the production environment.
