@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # carregar .env (se existir)
-load_dotenv(BASE_DIR / '.env')
+# load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -46,6 +46,11 @@ if _allowed:
     ALLOWED_HOSTS = [h.strip() for h in _allowed.split(',') if h.strip()]
 else:
     ALLOWED_HOSTS = ['*']
+
+_csrf_trusted = os.getenv('CSRF_TRUSTED_ORIGINS')
+if _csrf_trusted:
+    CSRF_TRUSTED_ORIGINS = [c.strip() for c in _csrf_trusted.split(',') if c.strip()]
+
 
 
 # Application definition

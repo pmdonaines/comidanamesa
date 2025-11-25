@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=comidanamesa
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    restart: always
+
+  web:
+    build: .
+    command: gunicorn comidanamesa.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+
+    expose:
+      - 8000
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/comidanamesa
+      - DEBUG=0
+      - ALLOWED_HOSTS=localhost,127.0.0.1,web,*
+      - SECRET_KEY=change_me_in_production
+    depends_on:
+      - db
+    restart: always
+
+  nginx:
+    build: ./nginx
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    restart: always
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:

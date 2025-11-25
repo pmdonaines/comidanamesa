@@ -1,58 +1,73 @@
-# Walkthrough - Implementação de Critérios Condicionais
+# Docker Compose Walkthrough
 
-## Visão Geral
-Implementamos a funcionalidade que permite definir condições para a aplicação de critérios de validação. Agora é possível configurar se um critério deve ser ignorado para:
-- Famílias sem crianças/adolescentes (menores de 18 anos).
-- Famílias onde o Responsável Familiar (RF) é homem.
-- Famílias unipessoais (apenas 1 membro).
+I have configured the project to run with Docker Compose, Nginx, and PostgreSQL.
 
-## Alterações Realizadas
+## Prerequisites
+- Docker
+- Docker Compose
 
-### 1. Modelo `Pessoa` e Importação
-- **Adicionado campo `cod_sexo_pessoa`**: Agora o sistema armazena o sexo das pessoas (1=Masculino, 2=Feminino).
-- **Atualizado Importador**: O processo de importação agora lê o campo `cod_sexo_pessoa` do arquivo CSV.
-    - *Nota*: Para atualizar os dados existentes, basta reimportar o arquivo CSV.
+## How to Run
 
-### 2. Modelo `Criterio`
-- Adicionados campos booleanos para controle de aplicação:
-    - `aplica_se_a_sem_criancas` (Padrão: Sim)
-    - `aplica_se_a_rf_homem` (Padrão: Sim)
-    - `aplica_se_a_unipessoais` (Padrão: Sim)
-- **Novos Campos Avançados**:
-    - `idade_minima`: Idade mínima de um membro para o critério aplicar.
-    - `idade_maxima`: Idade máxima de um membro para o critério aplicar.
-    - `sexo_necessario`: Sexo específico (M/F) que um membro deve ter.
+1.  **Create `.env` file**:
+    Copy the example file and adjust values if needed.
+    ```bash
+    cp .env.docker.example .env
+    ```
 
-### 3. Interface de Gestão de Critérios
-- Atualizado o formulário de criação/edição de critérios para incluir a seção "Condições de Aplicação" e "Condições Avançadas".
+2.  **Build and Run**:
+    ```bash
+    docker compose up --build
+    ```
 
-### 4. Lógica de Validação
-- Atualizado serviço `CriteriaAssociator` para verificar idade e sexo dos membros da família.
-- Se um critério tem `idade_maxima=18`, ele só será aplicado se a família tiver alguém com 18 anos ou menos.
-- Se tem `sexo_necessario='F'` e `idade_minima=25`, só aplica se houver mulher com 25+ anos.
+3.  **Access the Application**:
+    The application will be available at [http://localhost](http://localhost).
 
-## Como Testar
+## Configuration Details
 
-1. **Reimportar Dados (Recomendado)**:
-   - Vá em "Importar Dados" e envie o arquivo CSV novamente para atualizar o campo "Sexo" das pessoas.
+- **Django**: Runs on port 8000 internally, exposed via Nginx on port 80.
+- **PostgreSQL**: Database service, data persisted in `postgres_data` volume.
+- **Nginx**: Serves static/media files and proxies requests to Django.
 
-2. **Configurar Critérios**:
-   - Vá em "Gestão de Critérios".
-   - Edite um critério (ex: "Carteira de Vacinação").
-   - Na seção "Condições de Aplicação", desmarque "Aplica-se a famílias unipessoais" ou "Aplica-se a famílias sem crianças".
-   - Salve.
+## Initial Setup
 
-4. **Popular Critérios Padrão**:
-   - O comando `uv run python manage.py popular_criterios` foi atualizado para incluir os critérios oficiais de 2026 com as regras condicionais já configuradas.
-   - Execute-o para atualizar a base de dados com os novos textos e regras.
+The database migrations and a default superuser are created automatically when the container starts.
 
-## Arquivos Modificados
-- `apps/cecad/models.py`
-- `apps/cecad/services/importer.py`
-- `apps/core/models.py`
-- `apps/core/views.py`
-- `apps/core/signals.py`
-- `apps/core/management/commands/associar_criterios.py`
-- `apps/core/management/commands/popular_criterios.py`
-- `apps/core/templates/core/criterio_form.html`
-- `apps/core/services/criteria_logic.py` (Novo)
+**Default credentials:**
+- Username: `admin`
+- Password: `admin`
+- Email: `admin@localhost`
+
+> [!WARNING]
+> Change the default password immediately in production!
+
+## Auto-start on Boot
+
+To ensure the application starts automatically when the system reboots:
+
+1.  **Enable Docker Service**:
+    Ensure the Docker daemon is configured to start on boot.
+    ```bash
+    sudo systemctl enable docker
+    ```
+
+2.  **Restart Policy**:
+    The services in `docker-compose.yml` are configured with `restart: always`, so they will start automatically when the Docker daemon starts.
+
+## Maintenance
+
+- **Migrations**:
+    ```bash
+    docker compose exec web uv run python manage.py migrate
+    ```
+- **Create Superuser**:
+    ```bash
+    docker compose exec web uv run python manage.py createsuperuser
+    ```
+- **Associate Criteria to Validations** (run after importing families):
+    ```bash
+    docker compose exec web uv run python manage.py associar_criterios
+    ```
+- **Verify Scoring**:
+    ```bash
+    docker compose exec web uv run python manage.py verificar_pontuacao
+    ```
