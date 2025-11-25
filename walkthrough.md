@@ -1,44 +1,33 @@
-# Fix File Upload 400 Error
+# Fix File Upload Forwarding Issue
 
 ## Problem
-The user reported that file uploads for "Importar Dados CECAD" were failing in production.
-Logs showed:
-- Nginx buffering the request body (indicating a large file).
-- A `400 Bad Request` response from the backend.
-- `POST /cecad/importar/ HTTP/1.1" 400 0`
+The user reported that Nginx was not forwarding upload files to the application server, resulting in a `400 Bad Request` and Nginx buffering warnings.
 
 ## Root Cause Analysis
-The `400 Bad Request` on a large file upload, where Nginx is configured correctly (100MB limit), strongly suggests that Django's `DATA_UPLOAD_MAX_MEMORY_SIZE` limit was being triggered. Although documentation states this setting excludes file uploads, in practice, certain request parsing overheads or configurations can trigger it, or the request body size check happens before file parsing in some scenarios.
+- **Nginx Buffering**: Nginx was buffering the large request body to a temporary file (`client_body_buffer_size` exceeded). While this is normal, it can cause issues if the upstream connection times out or if there are permission/disk issues, or if the double-buffering (Nginx -> Django) causes delays.
+- **Protocol Mismatch**: Default `proxy_pass` uses HTTP 1.0. Using HTTP 1.1 with `Connection: keep-alive` (or clearing Connection header) is better for large streaming uploads.
+- **Django Limit**: The `DATA_UPLOAD_MAX_MEMORY_SIZE` in Django might still be relevant if the request body overhead pushes it over 100MB.
 
 ## Changes Made
 
-### 1. Update `settings.py`
-Increased `DATA_UPLOAD_MAX_MEMORY_SIZE` to 100MB to match the Nginx configuration.
+### 1. Update `nginx/nginx.conf`
+Disabled request buffering (`proxy_request_buffering off`) to allow the file to be streamed directly to the backend. Enabled HTTP 1.1 for the proxy connection.
 
-```python
-# comidanamesa/settings.py
-
-# Configuração de Upload
-# Permitir uploads de até 100MB (em bytes) para corresponder ao Nginx
-DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
+```nginx
+    location / {
+        proxy_pass http://web_app;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_request_buffering off;
+        # ...
+    }
 ```
 
-### 2. Update `apps/cecad/views.py`
-Modified `ImportDataView` to use `uuid` for temporary filenames. This prevents potential filename collisions if multiple users upload files with the same name (e.g., `import.csv`) simultaneously, and ensures thread safety.
-
-```python
-# apps/cecad/views.py
-
-        # Save temporary file
-        import uuid
-        ext = os.path.splitext(csv_file.name)[1]
-        unique_filename = f"{uuid.uuid4()}{ext}"
-        file_path = f'/tmp/{unique_filename}'
-```
+### 2. Previous Changes (Retained)
+- **`apps/cecad/views.py`**: Using UUID for temporary filenames to prevent collisions.
+- **`comidanamesa/settings.py`**: `DATA_UPLOAD_MAX_MEMORY_SIZE` is set to 100MB (user reverted 200MB). *Note: If uploads still fail with 400, this limit may need to be increased slightly (e.g. 105MB) to account for multipart overhead.*
 
 ## Verification
-- The Nginx configuration already allowed 100MB uploads.
-- The Django configuration now explicitly allows request bodies up to 100MB.
-- The file saving logic is now more robust.
-
-The user should verify the fix by attempting to upload the file again in the production environment.
+- Nginx will now stream the upload directly to Gunicorn/Django.
+- This should eliminate the Nginx temp file buffering warning and the delay associated with it.
+- If the 400 error persists, it is definitely coming from Django (likely the size limit), and we will need to increase `DATA_UPLOAD_MAX_MEMORY_SIZE` slightly.
