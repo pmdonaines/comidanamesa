@@ -96,6 +96,179 @@ Observação: detalhar a pontuação dos critérios no módulo de configuração
             python manage.py runserver
             ```
 
+## Instalação com Docker (produção)
+
+O projeto inclui configuração completa de Docker Compose com Nginx, PostgreSQL e Gunicorn para ambientes de produção ou homologação.
+
+### Pré-requisitos
+- Docker Engine (v20.10+)
+- Docker Compose (v2.0+)
+
+### Estrutura de serviços
+- **web**: Django + Gunicorn (Python 3.13)
+- **db**: PostgreSQL 15
+- **nginx**: Nginx 1.25 (reverse proxy e arquivos estáticos)
+
+### Iniciar a aplicação
+
+1. **Clone o repositório**
+   ```bash
+   git clone <repository-url>
+   cd comidanamesa
+   ```
+
+2. **Configure as variáveis de ambiente (opcional)**
+   
+   Copie o arquivo de exemplo e ajuste conforme necessário:
+   ```bash
+   cp .env.docker.example .env
+   ```
+   
+   Variáveis importantes:
+   - `DATABASE_URL`: URL de conexão com PostgreSQL (padrão: `postgres://postgres:postgres@db:5432/comidanamesa`)
+   - `SECRET_KEY`: Chave secreta do Django (MUDE EM PRODUÇÃO!)
+   - `DEBUG`: Modo debug (0 para produção)
+   - `ALLOWED_HOSTS`: Hosts permitidos (adicione seu domínio)
+   - `CSRF_TRUSTED_ORIGINS`: Origins confiáveis para CSRF (adicione `http://seudominio.com`)
+
+3. **Inicie os containers**
+   ```bash
+   docker compose up --build
+   ```
+   
+   Para rodar em background (daemon):
+   ```bash
+   docker compose up -d --build
+   ```
+
+4. **Acesse a aplicação**
+   - URL: http://localhost
+   - Login padrão: `admin` / `admin` (MUDE A SENHA!)
+
+### Configuração automática
+
+O entrypoint do container executa automaticamente:
+- ✅ Validação de conexão com PostgreSQL
+- ✅ Migrações do banco de dados (`migrate`)
+- ✅ Criação do superusuário padrão (`admin`)
+- ✅ População de categorias e critérios (`popular_criterios`)
+- ✅ Coleta de arquivos estáticos (`collectstatic`)
+
+### Comandos úteis
+
+**Ver logs dos containers:**
+```bash
+# Todos os serviços
+docker compose logs -f
+
+# Apenas o Django
+docker compose logs -f web
+
+# Apenas o Nginx
+docker compose logs -f nginx
+```
+
+**Executar comandos Django:**
+```bash
+# Executar migrações
+docker compose exec web uv run python manage.py migrate
+
+# Criar superusuário
+docker compose exec web uv run python manage.py createsuperuser
+
+# Associar critérios às validações (após importar famílias)
+docker compose exec web uv run python manage.py associar_criterios
+
+# Verificar pontuação dos critérios
+docker compose exec web uv run python manage.py verificar_pontuacao
+
+# Shell do Django
+docker compose exec web uv run python manage.py shell
+```
+
+**Gerenciar containers:**
+```bash
+# Parar containers
+docker compose down
+
+# Parar e remover volumes (CUIDADO: apaga o banco!)
+docker compose down -v
+
+# Reiniciar um serviço específico
+docker compose restart web
+
+# Ver status
+docker compose ps
+```
+
+**Backup do banco de dados:**
+```bash
+# Criar backup
+docker compose exec db pg_dump -U postgres comidanamesa > backup.sql
+
+# Restaurar backup
+cat backup.sql | docker compose exec -T db psql -U postgres comidanamesa
+```
+
+### Auto-start no boot do sistema
+
+Para garantir que a aplicação inicie automaticamente quando o servidor reiniciar:
+
+1. **Habilite o serviço Docker**:
+   ```bash
+   sudo systemctl enable docker
+   ```
+
+2. **Os containers estão configurados com `restart: always`**, então eles iniciaram automaticamente quando o Docker iniciar.
+
+### Configurações de produção
+
+#### Segurança
+- [ ] Altere `SECRET_KEY` para um valor único e seguro
+- [ ] Altere a senha do usuário `admin`
+- [ ] Configure `ALLOWED_HOSTS` com seu domínio
+- [ ] Configure `CSRF_TRUSTED_ORIGINS` com suas URLs
+- [ ] Configure HTTPS (use um reverse proxy como Caddy ou Traefik)
+- [ ] Altere as credenciais do PostgreSQL no `docker-compose.yml`
+
+#### Limites de upload
+O Nginx está configurado para aceitar uploads de até **100MB**. Para ajustar:
+- Edite `nginx/nginx.conf` e altere `client_max_body_size`
+
+#### Volumes persistentes
+Os dados são armazenados nos seguintes volumes Docker:
+- `postgres_data`: Dados do PostgreSQL
+- `static_volume`: Arquivos estáticos do Django
+- `media_volume`: Arquivos de mídia (uploads)
+
+Para fazer backup completo, salve esses volumes ou use `docker compose down` sem a flag `-v`.
+
+### Troubleshooting
+
+**Erro: porta 80 já em uso**
+```bash
+# Verifique o que está usando a porta
+sudo lsof -i :80
+
+# Pare o serviço conflitante ou mude a porta no docker-compose.yml
+```
+
+**Erro: containers reiniciando continuamente**
+```bash
+# Verifique os logs
+docker compose logs web
+
+# Verifique se o PostgreSQL está pronto
+docker compose exec db pg_isready
+```
+
+**Limpar tudo e recomeçar**
+```bash
+docker compose down -v
+docker system prune -a
+docker compose up --build
+```
+
 ## Importação da base CECAD
 - Fornecer utilitário/endpoint para importar arquivos fornecidos pelo CECAD (CSV, JSON, dump).
 - Mapear campos mínimos (nome, CPF, endereço, renda, data atualização CadÚnico, vacinas, histórico de exames, matrícula).
