@@ -230,10 +230,12 @@ class Command(BaseCommand):
             'pontos': 3,
             'peso': 1.0,
             'ativo': True,
-            'aplica_se_a_sem_criancas': True,
+            'aplica_se_a_sem_criancas': True,  # Controlado por idade e parentesco
             'aplica_se_a_rf_homem': True,
             'aplica_se_a_unipessoais': True,
-            'idade_minima': 4
+            'idade_minima': 4,
+            'idade_maxima': 17,  # Menores de 18 anos
+            'parentescos_permitidos': '3'  # Apenas filhos
         },
         {
             'codigo': 'declaracao_saude',
