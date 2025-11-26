@@ -232,7 +232,8 @@ class Command(BaseCommand):
             'ativo': True,
             'aplica_se_a_sem_criancas': True,
             'aplica_se_a_rf_homem': True,
-            'aplica_se_a_unipessoais': True
+            'aplica_se_a_unipessoais': True,
+            'idade_minima': 4
         },
         {
             'codigo': 'declaracao_saude',
