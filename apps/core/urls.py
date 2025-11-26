@@ -3,7 +3,7 @@ from django.contrib.auth import views as auth_views
 from apps.core.views import (
     home, DashboardView, FilaValidacaoView, ValidacaoDetailView, ValidacaoViewOnlyView, RelatoriosView,
     CriterioListView, CriterioCreateView, CriterioUpdateView, CriterioDeleteView, ConfiguracaoView,
-    ListaAprovadosView
+    ListaAprovadosView, ValidacaoTransferView
 )
 
 urlpatterns = [
@@ -13,6 +13,7 @@ urlpatterns = [
     path('relatorios/', RelatoriosView.as_view(), name='relatorios'),
     path('aprovados/', ListaAprovadosView.as_view(), name='lista_aprovados'),
     path('validacao/<int:pk>/', ValidacaoDetailView.as_view(), name='validacao_detail'),
+    path('validacao/<int:pk>/transferir/', ValidacaoTransferView.as_view(), name='validacao_transfer'),
     path('validacao/<int:pk>/visualizar/', ValidacaoViewOnlyView.as_view(), name='validacao_view'),
     
     # Configuração

@@ -662,3 +662,66 @@ class CriterioDeleteView(LoginRequiredMixin, TemplateView):
             messages.error(request, f'Erro ao excluir critério: {str(e)}')
         
         return redirect('criterio_list')
+
+
+class ValidacaoTransferView(LoginRequiredMixin, TemplateView):
+    """View para transferir uma validação em análise para outro usuário."""
+    template_name = 'core/validacao_transfer.html'
+    
+    def get_context_data(self, **kwargs):
+        from django.contrib.auth import get_user_model
+        
+        context = super().get_context_data(**kwargs)
+        validacao = get_object_or_404(Validacao, pk=kwargs['pk'])
+        
+        # Buscar todos os usuários exceto o atual
+        User = get_user_model()
+        usuarios_disponiveis = User.objects.filter(is_active=True).exclude(pk=self.request.user.pk).order_by('username')
+        
+        context['validacao'] = validacao
+        context['usuarios_disponiveis'] = usuarios_disponiveis
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        from django.contrib.auth import get_user_model
+        
+        validacao = get_object_or_404(Validacao, pk=kwargs['pk'])
+        
+        # Validar que a validação está em análise
+        if validacao.status != 'em_analise':
+            messages.error(request, 'Apenas validações em análise podem ser transferidas.')
+            return redirect('fila_validacao')
+        
+        # Validar que o usuário atual possui o lock
+        if validacao.em_avaliacao_por != request.user:
+            messages.error(request, 'Você não tem permissão para transferir esta validação.')
+            return redirect('fila_validacao')
+        
+        # Obter usuário destinatário
+        novo_usuario_id = request.POST.get('novo_usuario')
+        if not novo_usuario_id:
+            messages.error(request, 'Por favor, selecione um usuário para transferir.')
+            return redirect('validacao_transfer', pk=validacao.pk)
+        
+        try:
+            User = get_user_model()
+            novo_usuario = User.objects.get(pk=novo_usuario_id, is_active=True)
+            
+            # Validar que não é o mesmo usuário
+            if novo_usuario == request.user:
+                messages.error(request, 'Você não pode transferir para si mesmo.')
+                return redirect('validacao_transfer', pk=validacao.pk)
+            
+            # Realizar transferência
+            validacao.transferir_avaliacao(novo_usuario)
+            
+            messages.success(
+                request, 
+                f'Validação transferida com sucesso para {novo_usuario.username}!'
+            )
+            return redirect('fila_validacao')
+            
+        except User.DoesNotExist:
+            messages.error(request, 'Usuário selecionado não encontrado.')
+            return redirect('validacao_transfer', pk=validacao.pk)

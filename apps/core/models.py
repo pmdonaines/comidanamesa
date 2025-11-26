@@ -193,6 +193,17 @@ class Validacao(models.Model):
         self.iniciado_em = None
         self.save(update_fields=['em_avaliacao_por', 'iniciado_em'])
     
+    def transferir_avaliacao(self, novo_usuario):
+        """Transfere a avaliação para outro usuário.
+        
+        Args:
+            novo_usuario: Instância do User para quem a validação será transferida
+        """
+        from django.utils import timezone
+        self.em_avaliacao_por = novo_usuario
+        self.iniciado_em = timezone.now()
+        self.save(update_fields=['em_avaliacao_por', 'iniciado_em'])
+    
     def calcular_pontuacao(self):
         """Calcula a pontuação total baseada nos critérios atendidos.
         
