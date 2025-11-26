@@ -387,3 +387,48 @@ class Configuracao(models.Model):
     def get_solo(cls):
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class ValidacaoHistorico(models.Model):
+    """Histórico de alterações em validações finalizadas."""
+    
+    validacao = models.ForeignKey(
+        Validacao, 
+        on_delete=models.CASCADE, 
+        related_name='historico_edicoes',
+        verbose_name="Validação"
+    )
+    editado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='edicoes_validacao',
+        verbose_name="Editado por"
+    )
+    editado_em = models.DateTimeField("Editado em", auto_now_add=True)
+    
+    # Campos alterados (JSON para flexibilidade)
+    campos_alterados = models.JSONField(
+        "Campos Alterados",
+        help_text="Dicionário com campos modificados e seus valores antes/depois"
+    )
+    
+    # Snapshot dos valores principais para consulta rápida
+    status_anterior = models.CharField("Status Anterior", max_length=20, blank=True)
+    status_novo = models.CharField("Status Novo", max_length=20, blank=True)
+    pontuacao_anterior = models.IntegerField("Pontuação Anterior", null=True, blank=True)
+    pontuacao_nova = models.IntegerField("Pontuação Nova", null=True, blank=True)
+    
+    observacao_edicao = models.TextField(
+        "Motivo da Edição",
+        blank=True,
+        help_text="Justificativa opcional para a edição"
+    )
+    
+    class Meta:
+        verbose_name = "Histórico de Edição"
+        verbose_name_plural = "Histórico de Edições"
+        ordering = ['-editado_em']
+    
+    def __str__(self):
+        return f"Edição de {self.validacao} por {self.editado_por} em {self.editado_em.strftime('%d/%m/%Y %H:%M')}"

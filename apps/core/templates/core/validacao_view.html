@@ -277,6 +277,9 @@
                         </div>
                     </div>
                     {% endif %}
+
+                    <!-- Histórico de Edições -->
+                    {% include 'core/partials/historico_edicoes.html' %}
                 </div>
 
                 <div class="flex items-center justify-between gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8 bg-gray-50 sm:rounded-b-xl">
@@ -284,6 +287,17 @@
                         class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                         Voltar para Relatórios
                     </a>
+                    
+                    <!-- Botão Editar (se permitido) -->
+                    {% if validacao.operador == request.user and validacao.status in 'aprovado,reprovado' %}
+                    <a href="{% url 'validacao_edit' validacao.pk %}"
+                       class="inline-flex items-center gap-x-2 rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Editar Avaliação
+                    </a>
+                    {% endif %}
                     
                     <!-- Botões de ação baseados no status -->
                     <div class="flex gap-3">

@@ -1,0 +1,402 @@
+{% extends 'core/base.html' %}
+{% load core_extras %}
+
+{% block title %}Editar Avaliação - {{ validacao.familia.cod_familiar_fam }} - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-7xl" 
+    x-data="{ 
+        showDetails: true, 
+        activeTab: 'desenvolvimento_social',
+        pontuacao: {{ validacao.pontuacao_total }},
+        pontuacaoDetalhada: {{ pontuacao_detalhada|safe }},
+        showSaveSuccess: false,
+        init() {
+            // Initialize all category checkboxes on page load
+            {% for categoria in categorias %}
+            this.updateCategoryCheckbox('{{ categoria.codigo }}');
+            {% endfor %}
+        },
+        toggleCategoryCheckboxes(categoryCode) {
+            const checkboxes = document.querySelectorAll(`input[data-category='${categoryCode}']:not(:disabled)`);
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        },
+        updateCategoryCheckbox(categoryCode) {
+            const checkboxes = document.querySelectorAll(`input[data-category='${categoryCode}']:not(:disabled)`);
+            const categoryCheckbox = document.getElementById(`select-all-${categoryCode}`);
+            if (categoryCheckbox) {
+                const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+                const totalCount = checkboxes.length;
+                
+                if (totalCount === 0) {
+                    categoryCheckbox.checked = false;
+                    categoryCheckbox.disabled = true;
+                    categoryCheckbox.indeterminate = false;
+                } else {
+                    categoryCheckbox.disabled = false;
+                    categoryCheckbox.checked = checkedCount === totalCount;
+                    categoryCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+                }
+            }
+        }
+    }"
+    @auto-saved.window="
+        pontuacao = $event.detail.pontuacao;
+        if ($event.detail.detalhes) {
+            pontuacaoDetalhada = $event.detail.detalhes;
+        }
+        showSaveSuccess = true;
+        setTimeout(() => showSaveSuccess = false, 2000);
+    ">
+
+    <!-- Sticky Header -->
+    <div
+        class="sticky top-0 z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 bg-gray-50/95 backdrop-blur py-4 border-b border-gray-200 mb-8 flex items-center justify-between">
+        <div class="min-w-0 flex-1">
+            <h2 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">Editar Avaliação</h2>
+            <p class="mt-1 text-sm text-gray-500">Família: <span class="font-mono font-medium text-gray-700">{{ validacao.familia.cod_familiar_fam }}</span></p>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="text-right mr-4">
+                <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">Pontuação</div>
+                <div class="text-2xl font-bold text-emerald-600" x-text="pontuacao + ' pts'"></div>
+            </div>
+            <!-- Save success indicator -->
+            <div x-show="showSaveSuccess" 
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 scale-90"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-90"
+                class="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-md text-xs font-medium border border-emerald-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                <span>Salvo</span>
+            </div>
+            {% if validacao.status == 'em_analise' %}
+            <a href="{% url 'validacao_transfer' validacao.pk %}"
+                class="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                <span>Transferir</span>
+            </a>
+            {% endif %}
+            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset 
+                {% if validacao.status == 'aprovado' %}bg-green-50 text-green-700 ring-green-600/20
+                {% elif validacao.status == 'reprovado' %}bg-red-50 text-red-700 ring-red-600/20
+                {% elif validacao.status == 'em_analise' %}bg-yellow-50 text-yellow-800 ring-yellow-600/20
+                {% else %}bg-gray-50 text-gray-600 ring-gray-500/10{% endif %}">
+                {{ validacao.get_status_display }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Warning Banner -->
+    <div class="mb-6 rounded-md bg-yellow-50 p-4 border border-yellow-200">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-yellow-800">Modo de Edição</h3>
+                <div class="mt-2 text-sm text-yellow-700">
+                    <p>Você está editando uma avaliação finalizada. Todas as alterações serão registradas no histórico.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-x-8 gap-y-8 lg:grid-cols-3">
+        <!-- Left Column: Family Profile -->
+        <div class="lg:col-span-1">
+            <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl overflow-hidden sticky top-24">
+                <div class="px-4 py-5 sm:p-6">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Dados da Família</h3>
+
+                    <dl class="space-y-4">
+                        <div>
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Responsável Familiar
+                            </dt>
+                            {% if responsavel_familiar %}
+                                <dd class="mt-1 text-sm font-medium text-gray-900">{{ responsavel_familiar.nom_pessoa }}</dd>
+                                <dd class="text-xs text-gray-500">NIS: {{ responsavel_familiar.num_nis_pessoa_atual }}</dd>
+                            {% else %}
+                                <dd class="mt-1 text-sm font-medium text-red-600">⚠️ Não identificado</dd>
+                                <dd class="text-xs text-red-500">Esta família não possui um RF cadastrado</dd>
+                            {% endif %}
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100">
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Renda Per Capita</dt>
+                            <dd class="mt-1 text-2xl font-bold text-gray-900">R$ {{ validacao.familia.vlr_renda_media_fam }}</dd>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100">
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Endereço</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                {{ validacao.familia.nom_logradouro_fam }}, {{ validacao.familia.num_logradouro_fam }}<br>
+                                {{ validacao.familia.nom_localidade_fam }}<br>
+                                CEP: {{ validacao.familia.num_cep_logradouro_fam }}
+                            </dd>
+                        </div>
+
+                        <div class="pt-4 border-t border-gray-100">
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Composição Familiar</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                {{ validacao.familia.membros.count }} pessoas
+                                <span class="text-gray-400 mx-1">|</span>
+                                {{ qtde_familias_domicilio }} família(s) no domicílio
+                            </dd>
+                        </div>
+                    </dl>
+
+                    <div class="mt-6 pt-4 border-t border-gray-100">
+                        <button @click="showDetails = !showDetails"
+                            class="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
+                            <span x-text="showDetails ? 'Ocultar Membros' : 'Ver Membros'"></span>
+                            <svg x-show="!showDetails" class="w-4 h-4" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                            <svg x-show="showDetails" class="w-4 h-4" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7">
+                                </path>
+                            </svg>
+                        </button>
+
+                        <div x-show="showDetails" class="mt-4 space-y-3" x-transition>
+                            {% if sem_rf %}
+                            <div class="mb-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                                ⚠️ Atenção: Esta família não possui um Responsável Familiar cadastrado
+                            </div>
+                            {% endif %}
+                            {% for membro in membros_ordenados %}
+                            <div class="text-sm border-b border-gray-50 pb-2 last:border-0">
+                                <div class="flex items-center gap-2">
+                                    <div class="font-medium text-gray-900">{{ membro.nom_pessoa }}</div>
+                                    {% if membro.cod_parentesco_rf_pessoa == 1 %}
+                                    <span class="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                                        RF
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <div class="text-xs text-gray-500 flex items-center gap-2">
+                                    <span>{{ membro.get_cod_parentesco_rf_pessoa_display }}</span>
+                                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>NIS: {{ membro.num_nis_pessoa_atual }}</span>
+                                    {% if membro.dat_nasc_pessoa %}
+                                    <span class="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{{ membro.dat_nasc_pessoa|date:"d/m/Y" }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Validation Checklist with Tabs -->
+        <div class="lg:col-span-2">
+            <form method="post" 
+                hx-post="{% url 'validacao_edit' validacao.pk %}"
+                hx-trigger="change delay:500ms from:input[type='checkbox']"
+                hx-swap="none"
+                hx-indicator="#save-indicator"
+                class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save_criteria">
+
+                <div class="px-4 py-5 sm:p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-base font-semibold leading-6 text-gray-900">Checklist de Elegibilidade</h3>
+                        <div class="flex items-center gap-3">
+                            <!-- Auto-save indicator -->
+                            <div id="save-indicator" class="htmx-indicator flex items-center gap-2 text-xs text-gray-500">
+                                <svg class="animate-spin h-4 w-4 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span class="font-medium">Salvando...</span>
+                            </div>
+                            <button type="submit"
+                                class="text-sm bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-md hover:bg-emerald-100 font-medium transition-colors border border-emerald-200">
+                                Salvar Progresso
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabs Navigation -->
+                    <div class="mb-6">
+                        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="Tabs">
+                            {% for categoria in categorias %}
+                            <button type="button"
+                                @click="activeTab = '{{ categoria.codigo }}'"
+                                :class="activeTab === '{{ categoria.codigo }}' 
+                                    ? 'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/50 text-emerald-700' 
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'"
+                                class="flex items-center justify-center gap-2 rounded-lg border px-2 py-2 text-xs sm:text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 h-full w-full">
+                                <span class="flex items-center justify-center gap-1.5 w-full">
+                                    {% if categoria.codigo == 'desenvolvimento_social' %}
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                                    </svg>
+                                    {% elif categoria.codigo == 'saude' %}
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                    </svg>
+                                    {% elif categoria.codigo == 'educacao' %}
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"></path>
+                                    </svg>
+                                    {% elif categoria.codigo == 'documentacao' %}
+                                    <svg class="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    {% endif %}
+                                    
+                                    <span class="text-center leading-tight">
+                                        {% if categoria.codigo == 'desenvolvimento_social' %}
+                                            Desenv. Social
+                                        {% else %}
+                                            {{ categoria.nome }}
+                                        {% endif %}
+                                    </span>
+                                    
+                                    <span class="ml-1 rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] sm:text-xs font-medium text-gray-600 flex-shrink-0 whitespace-nowrap"
+                                          x-text="(pontuacaoDetalhada['{{ categoria.id }}']?.efetivo || 0) + ' / 25'">
+                                        {{ pontuacao_detalhada|dict_get:categoria.id|dict_get:'efetivo'|default:0 }} / 25
+                                    </span>
+                                </span>
+                            </button>
+                            {% endfor %}
+                        </nav>
+                    </div>
+
+                    <!-- Tab Panels -->
+                    {% for categoria in categorias %}
+                    <div x-show="activeTab === '{{ categoria.codigo }}'" x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 transform scale-95"
+                        x-transition:enter-end="opacity-100 transform scale-100">
+                        
+                        <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <h4 class="text-sm font-semibold text-gray-900 mb-1">{{ categoria.nome }}</h4>
+                                    <p class="text-xs text-gray-600">{{ categoria.descricao }}</p>
+                                </div>
+                                <div class="ml-4 flex items-center">
+                                    <input 
+                                        type="checkbox" 
+                                        id="select-all-{{ categoria.codigo }}"
+                                        @change="toggleCategoryCheckboxes('{{ categoria.codigo }}')"
+                                        class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 cursor-pointer"
+                                    >
+                                    <label for="select-all-{{ categoria.codigo }}" class="ml-2 text-xs font-medium text-gray-700 cursor-pointer select-none whitespace-nowrap">
+                                        Selecionar Todos
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            {% for vc in criterios_por_categoria|dict_get:categoria %}
+                            <div
+                                class="relative flex items-start p-4 border rounded-lg transition-colors 
+                                {% if not vc.aplicavel %}bg-gray-50 border-gray-200 opacity-75{% elif vc.atendido %}border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50{% else %}border-gray-200 hover:bg-gray-50{% endif %}">
+                                <div class="flex h-6 items-center">
+                                    <input 
+                                        id="criterio_{{ vc.criterio.id }}" 
+                                        name="criterio_{{ vc.criterio.id }}" 
+                                        type="checkbox"
+                                        data-category="{{ categoria.codigo }}"
+                                        @change="updateCategoryCheckbox('{{ categoria.codigo }}')"
+                                        {% if vc.atendido %}checked{% endif %}
+                                        {% if not vc.aplicavel %}disabled{% endif %}
+                                        class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-600 disabled:text-gray-400 disabled:cursor-not-allowed">
+                                </div>
+                                <div class="ml-3 text-sm leading-6 flex-1">
+                                    <label for="criterio_{{ vc.criterio.id }}"
+                                        class="font-medium text-gray-900 {% if not vc.aplicavel %}cursor-not-allowed text-gray-500{% else %}cursor-pointer select-none{% endif %}">
+                                        {{ vc.criterio.descricao }}
+                                    </label>
+                                    
+                                    {% if not vc.aplicavel %}
+                                    <div class="mt-1">
+                                        <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                                            Não aplicável: {{ vc.observacao|default:"Critério não se aplica a esta família" }}
+                                        </span>
+                                    </div>
+                                    {% endif %}
+
+                                    <p class="text-gray-500 text-xs mt-1">Peso: {{ vc.criterio.peso }} • Pontos: {{ vc.criterio.pontos }} • Pontuação máxima: {{ vc.criterio.pontos|multiply:vc.criterio.peso|floatformat:1 }} pts</p>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-8 text-gray-500">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <p class="mt-2 text-sm">Nenhum critério nesta categoria</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="mt-8 pt-6 border-t border-gray-100">
+                        <label for="observacoes" class="block text-sm font-medium leading-6 text-gray-900">Observações
+                            Gerais</label>
+                        <div class="mt-2">
+                            <textarea id="observacoes" name="observacoes" rows="3"
+                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6"
+                                placeholder="Adicione observações sobre a documentação ou situação da família...">{{ validacao.observacoes }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Justificativa da Edição -->
+                    <div class="mt-6 pt-6 border-t border-gray-100">
+                        <label for="observacao_edicao" class="block text-sm font-medium leading-6 text-gray-900">Motivo da Edição (Opcional)</label>
+                        <div class="mt-2">
+                            <textarea id="observacao_edicao" name="observacao_edicao" rows="2"
+                                class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                                placeholder="Explique brevemente o motivo desta edição..."></textarea>
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">Esta justificativa será registrada no histórico de edições.</p>
+                    </div>
+                </div>
+
+                <div
+                    class="flex items-center justify-end gap-x-4 border-t border-gray-900/10 px-4 py-4 sm:px-8 bg-gray-50 sm:rounded-b-xl">
+                    <a href="{% url 'validacao_view' validacao.pk %}"
+                        class="text-sm font-semibold leading-6 text-gray-900 hover:text-gray-700">Cancelar</a>
+                    <button type="submit" name="action" value="finalize"
+                        class="rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                        Salvar Edição
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Bridge HTMX trigger events to Alpine.js
+    document.body.addEventListener('autoSaved', function(event) {
+        window.dispatchEvent(new CustomEvent('auto-saved', {
+            detail: event.detail
+        }));
+    });
+</script>
+{% endblock %}

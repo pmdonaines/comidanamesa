@@ -367,6 +367,11 @@ class ValidacaoViewOnlyView(LoginRequiredMixin, DetailView):
             cod_familiar_fam__startswith=cod_domicilio
         ).count()
         
+        # Adicionar histórico de edições
+        context['historico'] = self.object.historico_edicoes.select_related(
+            'editado_por'
+        ).all()
+        
         return context
 
 
@@ -725,3 +730,193 @@ class ValidacaoTransferView(LoginRequiredMixin, TemplateView):
         except User.DoesNotExist:
             messages.error(request, 'Usuário selecionado não encontrado.')
             return redirect('validacao_transfer', pk=validacao.pk)
+
+
+class ValidacaoEditView(LoginRequiredMixin, DetailView):
+    """View para editar validações finalizadas."""
+    model = Validacao
+    template_name = 'core/validacao_edit.html'
+    context_object_name = 'validacao'
+    
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        
+        # Verificar se pode editar
+        if not self._pode_editar(request.user):
+            messages.error(request, 'Você não tem permissão para editar esta avaliação.')
+            return redirect('validacao_view', pk=self.object.pk)
+        
+        # Verificar se está disponível (não sendo editada por outro usuário)
+        if self.object.em_avaliacao_por and self.object.em_avaliacao_por != request.user:
+            messages.warning(
+                request,
+                f'Esta avaliação está sendo editada por {self.object.em_avaliacao_por.username}. '
+                f'Por favor, aguarde.'
+            )
+            return redirect('validacao_view', pk=self.object.pk)
+        
+        # Iniciar lock de edição
+        from django.utils import timezone
+        self.object.em_avaliacao_por = request.user
+        self.object.iniciado_em = timezone.now()
+        self.object.save(update_fields=['em_avaliacao_por', 'iniciado_em'])
+        
+        return super().get(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        from apps.core.models import Categoria
+        from collections import defaultdict
+        
+        context = super().get_context_data(**kwargs)
+        
+        # Buscar todos os critérios avaliados
+        criterios_avaliados = ValidacaoCriterio.objects.filter(
+            validacao=self.object
+        ).select_related('criterio', 'criterio__categoria').order_by('criterio__categoria__ordem', 'criterio__codigo')
+        
+        # Agrupar por categoria
+        criterios_por_categoria = defaultdict(list)
+        for vc in criterios_avaliados:
+            if vc.criterio.categoria:
+                criterios_por_categoria[vc.criterio.categoria].append(vc)
+        
+        # Passar categorias ordenadas e seus critérios
+        context['categorias'] = Categoria.objects.filter(ativo=True).order_by('ordem').prefetch_related('criterios')
+        context['criterios_por_categoria'] = dict(criterios_por_categoria)
+        context['criterios'] = criterios_avaliados
+        
+        # Pontuação detalhada
+        context['pontuacao_detalhada'] = self.object.get_pontuacao_detalhada()
+        
+        # Adicionar Responsável Familiar ao contexto
+        context['responsavel_familiar'] = self.object.familia.get_responsavel_familiar()
+        context['sem_rf'] = not context['responsavel_familiar']
+        
+        # Membros ordenados (RF primeiro)
+        context['membros_ordenados'] = self.object.familia.membros.all().order_by('cod_parentesco_rf_pessoa', 'nom_pessoa')
+        
+        # Calcular quantidade de famílias no domicílio
+        cod_domicilio = self.object.familia.cod_familiar_fam[:8]
+        context['qtde_familias_domicilio'] = Familia.objects.filter(
+            import_batch=self.object.familia.import_batch,
+            cod_familiar_fam__startswith=cod_domicilio
+        ).count()
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        from django.http import HttpResponse
+        from django.utils import timezone
+        from apps.core.services.history_tracker import ValidationHistoryTracker
+        import json
+        
+        self.object = self.get_object()
+        action = request.POST.get('action')
+        
+        # Verificar se pode editar
+        if not self._pode_editar(request.user):
+            messages.error(request, 'Você não tem permissão para editar esta avaliação.')
+            return redirect('validacao_view', pk=self.object.pk)
+        
+        # Verificar se ainda está com lock do usuário
+        if self.object.em_avaliacao_por != request.user:
+            messages.error(
+                request,
+                'Você perdeu o acesso a esta edição. Outro usuário pode ter assumido.'
+            )
+            return redirect('validacao_view', pk=self.object.pk)
+        
+        if action in ['save_criteria', 'finalize']:
+            # Capturar estado antes da edição
+            estado_anterior = ValidationHistoryTracker.capturar_estado_atual(self.object)
+            
+            # Resetar critérios aplicáveis
+            ValidacaoCriterio.objects.filter(validacao=self.object, aplicavel=True).update(atendido=False)
+            
+            # Marcar critérios selecionados
+            for key, value in request.POST.items():
+                if key.startswith('criterio_'):
+                    criterio_id = int(key.split('_')[1])
+                    ValidacaoCriterio.objects.filter(
+                        validacao=self.object,
+                        criterio_id=criterio_id
+                    ).update(atendido=True)
+            
+            # Atualizar observações
+            observacoes = request.POST.get('observacoes', '')
+            if observacoes:
+                self.object.observacoes = observacoes
+            
+            # Calcular e atualizar pontuação
+            self.object.atualizar_pontuacao()
+            
+            if action == 'save_criteria':
+                # Apenas salvar progresso
+                self.object.save(update_fields=['observacoes'])
+                
+                # Detectar se é uma requisição HTMX (auto-save)
+                is_htmx = request.headers.get('HX-Request')
+                
+                if is_htmx:
+                    response = HttpResponse(status=204)
+                    response['HX-Trigger'] = json.dumps({
+                        'autoSaved': {
+                            'pontuacao': self.object.pontuacao_total,
+                            'detalhes': self.object.get_pontuacao_detalhada()
+                        }
+                    })
+                    return response
+                else:
+                    messages.success(request, f'Progresso salvo! Pontuação atual: {self.object.pontuacao_total} pontos.')
+            
+            elif action == 'finalize':
+                # Finalizar edição
+                from apps.core.models import Configuracao
+                config = Configuracao.get_solo()
+                
+                # Recalcular status baseado na pontuação
+                if self.object.pontuacao_total >= config.pontuacao_minima_aprovacao:
+                    self.object.status = 'aprovado'
+                else:
+                    self.object.status = 'reprovado'
+                
+                # Atualizar data de validação
+                self.object.data_validacao = timezone.now()
+                self.object.save(update_fields=['status', 'data_validacao', 'observacoes'])
+                
+                # Registrar no histórico
+                observacao_edicao = request.POST.get('observacao_edicao', '')
+                ValidationHistoryTracker.registrar_edicao(
+                    self.object,
+                    estado_anterior,
+                    request.user,
+                    observacao_edicao
+                )
+                
+                # Liberar lock
+                self.object.liberar_avaliacao()
+                
+                messages.success(
+                    request,
+                    f'Edição finalizada! Status: {self.object.get_status_display()}, '
+                    f'Pontuação: {self.object.pontuacao_total} pontos.'
+                )
+                
+                # Redirecionar para visualização
+                return redirect('validacao_view', pk=self.object.pk)
+        
+        return redirect('validacao_edit', pk=self.object.pk)
+    
+    def _pode_editar(self, usuario):
+        """Verifica se o usuário pode editar esta validação."""
+        validacao = self.get_object()
+        
+        # Apenas validações finalizadas podem ser editadas
+        if validacao.status not in ['aprovado', 'reprovado']:
+            return False
+        
+        # Apenas o operador que finalizou pode editar
+        if validacao.operador != usuario:
+            return False
+        
+        return True

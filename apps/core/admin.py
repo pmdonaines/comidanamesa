@@ -4,6 +4,7 @@ from .models import (
     Criterio, 
     Validacao, 
     ValidacaoCriterio, 
+    ValidacaoHistorico,
     DocumentoPessoa,
     DocumentoValidacao
 )
@@ -16,6 +17,16 @@ class ValidacaoCriterioInline(admin.TabularInline):
 class DocumentoInline(admin.TabularInline):
     model = DocumentoValidacao
     extra = 0
+
+class ValidacaoHistoricoInline(admin.TabularInline):
+    model = ValidacaoHistorico
+    extra = 0
+    readonly_fields = ['editado_por', 'editado_em', 'status_anterior', 'status_novo', 
+                       'pontuacao_anterior', 'pontuacao_nova', 'campos_alterados', 'observacao_edicao']
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Categoria)
@@ -40,7 +51,7 @@ class ValidacaoAdmin(admin.ModelAdmin):
     list_display = ('familia', 'status', 'pontuacao_total', 'operador', 'data_validacao')
     list_filter = ('status', 'data_validacao')
     search_fields = ('familia__cod_familiar_fam',)
-    inlines = [ValidacaoCriterioInline, DocumentoInline]
+    inlines = [ValidacaoCriterioInline, DocumentoInline, ValidacaoHistoricoInline]
     readonly_fields = ('pontuacao_total',)
 
 @admin.register(DocumentoPessoa)

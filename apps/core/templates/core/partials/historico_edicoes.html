@@ -1,0 +1,210 @@
+<!-- Seção de Histórico de Edições -->
+{% if historico %}
+<div class="mt-8 pt-6 border-t border-gray-100">
+    <h4 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Histórico de Edições
+    </h4>
+    <div class="space-y-3">
+        {% for edicao in historico %}
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center gap-2 text-sm">
+                    <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    <span class="font-medium text-gray-900">{{ edicao.editado_por.username }}</span>
+                    {% if edicao.editado_por.get_full_name %}
+                    <span class="text-xs text-gray-500">({{ edicao.editado_por.get_full_name }})</span>
+                    {% endif %}
+                </div>
+                <span class="text-xs text-gray-500">{{ edicao.editado_em|date:"d/m/Y H:i" }}</span>
+            </div>
+            
+            <!-- Alterações de status/pontuação -->
+            <div class="space-y-1">
+                {% if edicao.status_anterior != edicao.status_novo %}
+                <div class="text-xs text-gray-700">
+                    <span class="font-medium">Status:</span> 
+                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium
+                        {% if edicao.status_anterior == 'aprovado' %}bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20
+                        {% elif edicao.status_anterior == 'reprovado' %}bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20
+                        {% else %}bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/10{% endif %}">
+                        {{ edicao.status_anterior }}
+                    </span>
+                    →
+                    <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium
+                        {% if edicao.status_novo == 'aprovado' %}bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20
+                        {% elif edicao.status_novo == 'reprovado' %}bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20
+                        {% else %}bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/10{% endif %}">
+                        {{ edicao.status_novo }}
+                    </span>
+                </div>
+                {% endif %}
+                
+                {% if edicao.pontuacao_anterior != edicao.pontuacao_nova %}
+                <div class="text-xs text-gray-700">
+                    <span class="font-medium">Pontuação:</span> 
+                    <span class="font-mono">{{ edicao.pontuacao_anterior }}</span> → 
+                    <span class="font-mono font-semibold text-emerald-700">{{ edicao.pontuacao_nova }}</span> pts
+                </div>
+                {% endif %}
+                
+                {% if edicao.campos_alterados.criterios %}
+                <div class="text-xs text-gray-700">
+                    <span class="font-medium">Critérios alterados:</span> {{ edicao.campos_alterados.criterios|length }}
+                </div>
+                {% endif %}
+                
+                {% if edicao.campos_alterados.observacoes %}
+                <div class="text-xs text-gray-700">
+                    <span class="font-medium">Observações:</span> Alteradas
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Detalhes completos -->
+            <details class="mt-3">
+                <summary class="text-xs text-blue-600 cursor-pointer hover:text-blue-800 font-medium flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Ver detalhes completos
+                </summary>
+                <div class="mt-3 p-3 bg-white rounded-lg border border-gray-200 space-y-3">
+                    
+                    <!-- Critérios Alterados -->
+                    {% if edicao.campos_alterados.criterios %}
+                    <div>
+                        <h5 class="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            Critérios Alterados
+                        </h5>
+                        <div class="space-y-2">
+                            {% for criterio in edicao.campos_alterados.criterios %}
+                            <div class="flex items-start gap-2 text-xs p-2 rounded {% if criterio.depois %}bg-emerald-50 border border-emerald-200{% else %}bg-red-50 border border-red-200{% endif %}">
+                                <div class="flex-shrink-0 mt-0.5">
+                                    {% if criterio.depois %}
+                                    <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    {% else %}
+                                    <svg class="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                    </svg>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-1">
+                                    <div class="{% if criterio.depois %}text-emerald-900{% else %}text-red-900{% endif %} font-medium">
+                                        {{ criterio.descricao }}
+                                    </div>
+                                    <div class="{% if criterio.depois %}text-emerald-700{% else %}text-red-700{% endif %} mt-0.5">
+                                        {% if criterio.depois %}
+                                            ✓ Marcado como atendido
+                                        {% else %}
+                                            ✗ Desmarcado
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Status Alterado -->
+                    {% if edicao.campos_alterados.status %}
+                    <div>
+                        <h5 class="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Mudança de Status
+                        </h5>
+                        <div class="flex items-center gap-2 text-xs p-2 bg-gray-50 rounded border border-gray-200">
+                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium
+                                {% if edicao.campos_alterados.status.antes == 'aprovado' %}bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20
+                                {% elif edicao.campos_alterados.status.antes == 'reprovado' %}bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20
+                                {% else %}bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/10{% endif %}">
+                                {{ edicao.campos_alterados.status.antes|title }}
+                            </span>
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                            <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium
+                                {% if edicao.campos_alterados.status.depois == 'aprovado' %}bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20
+                                {% elif edicao.campos_alterados.status.depois == 'reprovado' %}bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20
+                                {% else %}bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/10{% endif %}">
+                                {{ edicao.campos_alterados.status.depois|title }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Pontuação Alterada -->
+                    {% if edicao.campos_alterados.pontuacao_total %}
+                    <div>
+                        <h5 class="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Mudança de Pontuação
+                        </h5>
+                        <div class="flex items-center gap-2 text-xs p-2 bg-gray-50 rounded border border-gray-200">
+                            <span class="font-mono text-base font-semibold text-gray-700">{{ edicao.campos_alterados.pontuacao_total.antes }}</span>
+                            <span class="text-gray-500">pontos</span>
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                            </svg>
+                            <span class="font-mono text-base font-semibold text-emerald-700">{{ edicao.campos_alterados.pontuacao_total.depois }}</span>
+                            <span class="text-gray-500">pontos</span>
+                            <span class="ml-2 text-gray-600">
+                                ({% if edicao.campos_alterados.pontuacao_total.depois > edicao.campos_alterados.pontuacao_total.antes %}
+                                    <span class="text-emerald-600">+{{ edicao.campos_alterados.pontuacao_total.depois|add:"-"|add:edicao.campos_alterados.pontuacao_total.antes }}</span>
+                                {% else %}
+                                    <span class="text-red-600">{{ edicao.campos_alterados.pontuacao_total.depois|add:"-"|add:edicao.campos_alterados.pontuacao_total.antes }}</span>
+                                {% endif %})
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Observações Alteradas -->
+                    {% if edicao.campos_alterados.observacoes %}
+                    <div>
+                        <h5 class="text-xs font-semibold text-gray-900 mb-2 flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                            </svg>
+                            Observações Modificadas
+                        </h5>
+                        <div class="space-y-2">
+                            <div class="p-2 bg-red-50 rounded border border-red-200">
+                                <div class="text-xs font-medium text-red-900 mb-1">Texto Anterior:</div>
+                                <div class="text-xs text-red-700 italic">{{ edicao.campos_alterados.observacoes.antes|default:"(vazio)" }}</div>
+                            </div>
+                            <div class="p-2 bg-emerald-50 rounded border border-emerald-200">
+                                <div class="text-xs font-medium text-emerald-900 mb-1">Novo Texto:</div>
+                                <div class="text-xs text-emerald-700 italic">{{ edicao.campos_alterados.observacoes.depois|default:"(vazio)" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                </div>
+            </details>
+            
+            {% if edicao.observacao_edicao %}
+            <div class="mt-2 text-xs text-gray-600 italic border-l-2 border-blue-300 pl-2 bg-blue-50/50 py-1">
+                <span class="font-medium not-italic">Justificativa:</span> {{ edicao.observacao_edicao }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
