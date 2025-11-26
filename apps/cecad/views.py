@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import TemplateView, ListView, DetailView, View
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib import messages
 from django.db.models import Count, Sum, Avg, Q
 from django.core.paginator import Paginator
@@ -32,8 +32,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             
         return context
 
-class ImportDataView(LoginRequiredMixin, View):
+class ImportDataView(LoginRequiredMixin, UserPassesTestMixin, View):
     template_name = "cecad/import_form.html"
+
+    def test_func(self):
+        return self.request.user.is_superuser
+
+    def handle_no_permission(self):
+        if self.request.user.is_authenticated:
+            messages.error(self.request, "Você não tem permissão para realizar importações.")
+            return redirect('cecad_dashboard')
+        return super().handle_no_permission()
 
     def get(self, request):
         return render(request, self.template_name)
