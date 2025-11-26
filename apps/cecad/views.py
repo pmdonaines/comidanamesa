@@ -155,7 +155,7 @@ class FamiliaListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().prefetch_related('membros')
         
         # Filter by batch if provided, otherwise latest
         batch_id = self.request.GET.get('batch')

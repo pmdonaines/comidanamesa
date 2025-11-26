@@ -318,10 +318,19 @@ class ListaAprovadosView(LoginRequiredMixin, ListView):
         if not latest_batch:
             return Validacao.objects.none()
 
-        return Validacao.objects.select_related('familia').filter(
+        queryset = Validacao.objects.select_related('familia').filter(
             familia__import_batch=latest_batch,
             status='aprovado'
-        ).order_by('-pontuacao_total', 'familia__cod_familiar_fam')
+        )
+
+        # Search by person name
+        search_query = self.request.GET.get('q', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(familia__membros__nom_pessoa__icontains=search_query)
+            ).distinct()
+
+        return queryset.order_by('-pontuacao_total', 'familia__cod_familiar_fam')
 
     def get_context_data(self, **kwargs):
         from apps.core.models import Configuracao
@@ -336,6 +345,7 @@ class ListaAprovadosView(LoginRequiredMixin, ListView):
         context['start_rank'] = start_rank
         context['vagas_disponiveis'] = config.quantidade_vagas
         context['total_aprovados'] = self.get_queryset().count()
+        context['search_query'] = self.request.GET.get('q', '')
         
         return context
 
@@ -405,6 +415,13 @@ class RelatoriosView(LoginRequiredMixin, ListView):
                 # Ignore invalid min_score values
                 pass
         
+        # Search by person name
+        search_query = self.request.GET.get('q', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(familia__membros__nom_pessoa__icontains=search_query)
+            ).distinct()
+        
         return queryset.order_by('-pontuacao_total', 'familia__cod_familiar_fam')
 
     def get_context_data(self, **kwargs):
@@ -425,6 +442,7 @@ class RelatoriosView(LoginRequiredMixin, ListView):
         # Current filters
         context['status_filter'] = self.request.GET.get('status', '')
         context['min_score_filter'] = self.request.GET.get('min_score', '')
+        context['search_query'] = self.request.GET.get('q', '')
         
         return context
 
