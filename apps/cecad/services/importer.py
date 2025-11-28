@@ -117,7 +117,7 @@ class CecadImporter:
                 'marc_pbf': self._parse_boolean(row.get('d.marc_pbf')),
                 'ref_cad': row.get('d.ref_cad'),
                 'ref_pbf': row.get('d.ref_pbf'),
-                'qtde_pessoas': self._parse_int(row.get('d.qtde_pessoas_domic_fam')) or 0,
+                'qtde_pessoas': self._parse_int(row.get('d.qtd_pessoas_domic_fam')) or 0,
                 'nom_logradouro_fam': row.get('d.nom_logradouro_fam', ''),
                 'num_logradouro_fam': row.get('d.num_logradouro_fam', ''),
                 'nom_localidade_fam': row.get('d.nom_localidade_fam', ''),
