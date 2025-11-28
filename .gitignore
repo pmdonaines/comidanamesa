@@ -29,6 +29,7 @@ media/
 
 # CSV
 *.csv
+!dicionariotudo.csv
 
 # node_modules
 node_modules/
