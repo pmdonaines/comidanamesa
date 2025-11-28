@@ -15,8 +15,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get latest completed batch
-        latest_batch = ImportBatch.objects.filter(status='completed').first()
+        # Get latest completed batch (only full imports)
+        latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
         context['latest_batch'] = latest_batch
         
         if latest_batch:
@@ -77,6 +77,54 @@ class ImportDataView(LoginRequiredMixin, UserPassesTestMixin, View):
         # Run import in background thread
         def run_import():
             importer = CecadImporter(file_path, batch)
+            importer.run()
+            # Clean up temp file after import
+            try:
+                os.remove(file_path)
+            except:
+                pass
+        
+        thread = threading.Thread(target=run_import)
+        thread.daemon = True
+        thread.start()
+        
+        # Redirect immediately to progress page
+        return redirect('cecad_import_progress', pk=batch.pk)
+
+class ImportCorrectionView(ImportDataView):
+    template_name = "cecad/import_correction_form.html"
+
+    def post(self, request):
+        if 'csv_file' not in request.FILES:
+            messages.error(request, 'Por favor, selecione um arquivo CSV.')
+            return redirect('cecad_import_correction')
+
+        csv_file = request.FILES['csv_file']
+        description = request.POST.get('description', '')
+        
+        if not csv_file.name.endswith('.csv'):
+            messages.error(request, 'O arquivo deve ser um CSV.')
+            return redirect('cecad_import_correction')
+
+        # Save temporary file
+        import uuid
+        ext = os.path.splitext(csv_file.name)[1]
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        file_path = f'/tmp/{unique_filename}'
+        with open(file_path, 'wb+') as destination:
+            for chunk in csv_file.chunks():
+                destination.write(chunk)
+
+        # Create ImportBatch
+        batch = ImportBatch.objects.create(
+            description=description or f"Correção de {csv_file.name}",
+            original_file=csv_file,
+            batch_type='correction'
+        )
+
+        # Run import in background thread with correction_mode=True
+        def run_import():
+            importer = CecadImporter(file_path, batch, correction_mode=True)
             importer.run()
             # Clean up temp file after import
             try:
@@ -171,7 +219,7 @@ class FamiliaListView(LoginRequiredMixin, ListView):
         if batch_id:
             queryset = queryset.filter(import_batch_id=batch_id)
         else:
-            latest_batch = ImportBatch.objects.filter(status='completed').first()
+            latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
             if latest_batch:
                 queryset = queryset.filter(import_batch=latest_batch)
             else:

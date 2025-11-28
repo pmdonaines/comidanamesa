@@ -11,6 +11,7 @@ class ImportBatch(models.Model):
     imported_at = models.DateTimeField("Data de Importação", auto_now_add=True)
     status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='processing')
     original_file = models.FileField("Arquivo Original", upload_to='imports/cecad/', null=True, blank=True)
+    batch_type = models.CharField("Tipo de Lote", max_length=20, choices=[('full', 'Importação Completa'), ('correction', 'Correção')], default='full')
     total_rows = models.IntegerField("Total de Linhas", default=0)
     processed_rows = models.IntegerField("Linhas Processadas", default=0)
     error_message = models.TextField("Mensagem de Erro", blank=True)
@@ -31,6 +32,8 @@ class Familia(models.Model):
     vlr_renda_media_fam = models.DecimalField("Renda Média Familiar", max_digits=10, decimal_places=2, null=True, blank=True)
     vlr_renda_total_fam = models.DecimalField("Renda Total Familiar", max_digits=10, decimal_places=2, null=True, blank=True)
     marc_pbf = models.BooleanField("Beneficiário Bolsa Família", default=False)
+    ref_cad = models.CharField("Referência Cadastro Único", max_length=20, null=True, blank=True)
+    ref_pbf = models.CharField("Referência Bolsa Família", max_length=20, null=True, blank=True)
     qtde_pessoas = models.IntegerField("Quantidade de Pessoas", default=0)
     
     # Endereço
