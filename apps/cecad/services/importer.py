@@ -114,7 +114,7 @@ class CecadImporter:
                 'dat_atual_fam': dat_atual or datetime.now().date(),
                 'vlr_renda_media_fam': renda_media,
                 'vlr_renda_total_fam': renda_total,
-                'marc_pbf': row.get('d.marc_pbf') == '1',
+                'marc_pbf': self._parse_boolean(row.get('d.marc_pbf')),
                 'ref_cad': row.get('d.ref_cad'),
                 'ref_pbf': row.get('d.ref_pbf'),
                 'qtde_pessoas': self._parse_int(row.get('d.qtde_pessoas_domic_fam')) or 0,
@@ -175,6 +175,13 @@ class CecadImporter:
         if not value:
             return None
         try:
-            return int(float(value.replace(',', '.'))) # Handle cases like "1,0"
+            return int(value)
         except:
             return None
+    
+    def _parse_boolean(self, value):
+        """Parse boolean fields that may come as '1', '0', '1 - Sim', '0 - Nao', etc."""
+        if not value:
+            return False
+        # Extract first character and check if it's '1'
+        return str(value).strip()[0] == '1'
