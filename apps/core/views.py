@@ -39,7 +39,7 @@ class FilaValidacaoView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         # Filter by latest batch by default
-        latest_batch = ImportBatch.objects.filter(status='completed').order_by('-imported_at').first()
+        latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
         if not latest_batch:
             return Validacao.objects.none()
 
@@ -314,7 +314,7 @@ class ListaAprovadosView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         # Filter by latest batch by default
-        latest_batch = ImportBatch.objects.filter(status='completed').order_by('-imported_at').first()
+        latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
         if not latest_batch:
             return Validacao.objects.none()
 
@@ -393,7 +393,7 @@ class RelatoriosView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         # Filter by latest batch by default
-        latest_batch = ImportBatch.objects.filter(status='completed').order_by('-imported_at').first()
+        latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
         if not latest_batch:
             return Validacao.objects.none()
 
@@ -428,7 +428,7 @@ class RelatoriosView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         
         # Statistics (filtered by latest batch)
-        latest_batch = ImportBatch.objects.filter(status='completed').order_by('-imported_at').first()
+        latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
         if latest_batch:
             all_validacoes = Validacao.objects.filter(familia__import_batch=latest_batch)
         else:

@@ -10,9 +10,10 @@ from apps.core.models import Validacao
 logger = logging.getLogger(__name__)
 
 class CecadImporter:
-    def __init__(self, file_path, import_batch):
+    def __init__(self, file_path, import_batch, correction_mode=False):
         self.file_path = file_path
         self.import_batch = import_batch
+        self.correction_mode = correction_mode
 
     def run(self):
         """Executa a importação do arquivo CSV."""
@@ -71,6 +72,38 @@ class CecadImporter:
         if not cod_familiar:
             return
 
+        if self.correction_mode:
+            # Correction Mode: Update only specific fields for existing families
+            try:
+                # Find the latest full import batch to target
+                latest_full_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
+                
+                if latest_full_batch:
+                    familia = Familia.objects.get(cod_familiar_fam=cod_familiar, import_batch=latest_full_batch)
+                else:
+                    # Fallback or skip if no full batch exists (shouldn't happen in normal flow)
+                    return
+                
+                # Update fields
+                familia.ref_cad = row.get('d.ref_cad')
+                familia.ref_pbf = row.get('d.ref_pbf')
+                familia.marc_pbf = self._parse_boolean(row.get('d.marc_pbf'))
+                
+                qtde_pessoas = self._parse_int(row.get('d.qtd_pessoas_domic_fam'))
+                if qtde_pessoas is not None:
+                    familia.qtde_pessoas = qtde_pessoas
+                
+                familia.save(update_fields=['ref_cad', 'ref_pbf', 'marc_pbf', 'qtde_pessoas'])
+                
+                # Link to this batch for tracking, but don't change ownership if not needed
+                # Ideally we might want to track that this batch touched this family
+                # For now, we just update the fields.
+                
+            except Familia.DoesNotExist:
+                # If family doesn't exist, we skip it in correction mode
+                pass
+            return
+
         dat_atual = self._parse_date(row.get('d.dat_atual_fam'))
         renda_media = self._parse_decimal(row.get('d.vlr_renda_media_fam'))
         renda_total = self._parse_decimal(row.get('d.vlr_renda_total_fam'))
@@ -82,8 +115,10 @@ class CecadImporter:
                 'dat_atual_fam': dat_atual or datetime.now().date(),
                 'vlr_renda_media_fam': renda_media,
                 'vlr_renda_total_fam': renda_total,
-                'marc_pbf': row.get('d.marc_pbf') == '1',
-                'qtde_pessoas': self._parse_int(row.get('d.qtde_pessoas_domic_fam')) or 0,
+                'marc_pbf': self._parse_boolean(row.get('d.marc_pbf')),
+                'ref_cad': row.get('d.ref_cad'),
+                'ref_pbf': row.get('d.ref_pbf'),
+                'qtde_pessoas': self._parse_int(row.get('d.qtd_pessoas_domic_fam')) or 0,
                 'nom_logradouro_fam': row.get('d.nom_logradouro_fam', ''),
                 'num_logradouro_fam': row.get('d.num_logradouro_fam', ''),
                 'nom_localidade_fam': row.get('d.nom_localidade_fam', ''),
@@ -141,6 +176,13 @@ class CecadImporter:
         if not value:
             return None
         try:
-            return int(float(value.replace(',', '.'))) # Handle cases like "1,0"
+            return int(value)
         except:
             return None
+    
+    def _parse_boolean(self, value):
+        """Parse boolean fields that may come as '1', '0', '1 - Sim', '0 - Nao', etc."""
+        if not value:
+            return False
+        # Extract first character and check if it's '1'
+        return str(value).strip()[0] == '1'
