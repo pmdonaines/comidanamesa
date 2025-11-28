@@ -87,12 +87,13 @@ class CecadImporter:
                 # Update fields
                 familia.ref_cad = row.get('d.ref_cad')
                 familia.ref_pbf = row.get('d.ref_pbf')
+                familia.marc_pbf = self._parse_boolean(row.get('d.marc_pbf'))
                 
                 qtde_pessoas = self._parse_int(row.get('d.qtd_pessoas_domic_fam'))
                 if qtde_pessoas is not None:
                     familia.qtde_pessoas = qtde_pessoas
                 
-                familia.save(update_fields=['ref_cad', 'ref_pbf', 'qtde_pessoas'])
+                familia.save(update_fields=['ref_cad', 'ref_pbf', 'marc_pbf', 'qtde_pessoas'])
                 
                 # Link to this batch for tracking, but don't change ownership if not needed
                 # Ideally we might want to track that this batch touched this family
