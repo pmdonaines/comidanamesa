@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class ImportBatch(models.Model):
     STATUS_CHOICES = [
@@ -162,3 +163,22 @@ class Beneficio(models.Model):
     def import_batch(self):
         """Acesso transitivo ao import_batch via familia."""
         return self.familia.import_batch if self.familia else None
+
+
+class PessoaTransferHistory(models.Model):
+    pessoa = models.ForeignKey(Pessoa, on_delete=models.CASCADE, related_name='transferencias')
+    origem = models.ForeignKey(Familia, on_delete=models.SET_NULL, null=True, related_name='transferencias_saida')
+    destino = models.ForeignKey(Familia, on_delete=models.SET_NULL, null=True, related_name='transferencias_entrada')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    transferido_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Histórico de Transferência'
+        verbose_name_plural = 'Históricos de Transferência'
+        ordering = ['-transferido_em']
+
+    def __str__(self):
+        pessoa = self.pessoa.nom_pessoa if self.pessoa_id else 'Pessoa removida'
+        o = self.origem.cod_familiar_fam if self.origem_id else '-'
+        d = self.destino.cod_familiar_fam if self.destino_id else '-'
+        return f"{pessoa}: {o} -> {d} em {self.transferido_em:%d/%m/%Y %H:%M}"

@@ -445,6 +445,28 @@ class PessoaDeleteView(LoginRequiredMixin, DeleteView):
 
 
 # ============================================
+# DETALHE DA PESSOA (com histórico de transferências)
+# ============================================
+class PessoaDetailView(LoginRequiredMixin, DetailView):
+    model = Pessoa
+    template_name = 'cecad/pessoa_detail.html'
+    context_object_name = 'pessoa'
+
+    def get_object(self):
+        familia_pk = self.kwargs.get('familia_pk')
+        pessoa_pk = self.kwargs.get('pk')
+        return get_object_or_404(Pessoa, pk=pessoa_pk, familia_id=familia_pk)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        pessoa = self.object
+        # Histórico de transferências mais recentes
+        transferencias = pessoa.transferencias.select_related('origem', 'destino', 'usuario').all()
+        context['transferencias'] = transferencias
+        context['familia'] = pessoa.familia
+        return context
+
+# ============================================
 # TRANSFERÊNCIA DE PESSOA ENTRE FAMÍLIAS
 # ============================================
 
@@ -583,12 +605,25 @@ class PessoaTransferConfirmView(LoginRequiredMixin, View):
             messages.error(request, 'A família de destino já possui um Responsável Familiar.')
             return redirect('cecad_pessoa_transfer_confirm', pessoa_pk=pessoa.pk, dest_familia_pk=dest_familia.pk)
 
-        origem_familia_id = pessoa.familia_id
+        origem_familia = pessoa.familia
 
         # Executar transferência
         pessoa.familia = dest_familia
         pessoa.cod_parentesco_rf_pessoa = novo_parentesco
         pessoa.save(update_fields=['familia', 'cod_parentesco_rf_pessoa', 'updated_at'])
+
+        # Registrar histórico de transferência
+        try:
+            from .models import PessoaTransferHistory
+            PessoaTransferHistory.objects.create(
+                pessoa=pessoa,
+                origem=origem_familia,
+                destino=dest_familia,
+                usuario=request.user if request.user.is_authenticated else None,
+            )
+        except Exception:
+            # Evitar quebrar o fluxo caso algo saia errado no histórico
+            pass
 
         messages.success(request, f"{pessoa.nom_pessoa} transferido(a) para a família {dest_familia.cod_familiar_fam}.")
         return redirect('cecad_familia_detail', pk=dest_familia.pk)

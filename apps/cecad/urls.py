@@ -22,6 +22,7 @@ urlpatterns = [
     path('familias/<int:familia_pk>/membros/novo/', views.PessoaCreateView.as_view(), name='cecad_pessoa_create'),
     path('familias/<int:familia_pk>/membros/<int:pk>/editar/', views.PessoaUpdateView.as_view(), name='cecad_pessoa_update'),
     path('familias/<int:familia_pk>/membros/<int:pk>/excluir/', views.PessoaDeleteView.as_view(), name='cecad_pessoa_delete'),
+    path('familias/<int:familia_pk>/membros/<int:pk>/', views.PessoaDetailView.as_view(), name='cecad_pessoa_detail'),
 
     # Transferência de Pessoa entre Famílias
     path('familias/<int:familia_pk>/membros/<int:pessoa_pk>/transferir/', views.PessoaTransferStartView.as_view(), name='cecad_pessoa_transfer_start'),
