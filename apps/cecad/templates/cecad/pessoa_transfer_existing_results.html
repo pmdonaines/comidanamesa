@@ -1,0 +1,39 @@
+{% if familias and familias.paginator.count %}
+<div class="overflow-x-auto">
+  <table class="min-w-full divide-y divide-gray-300">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-3 py-2 text-left text-sm font-semibold text-gray-900">Código</th>
+        <th class="px-3 py-2 text-left text-sm font-semibold text-gray-900">Qtd. Pessoas</th>
+        <th class="px-3 py-2 text-left text-sm font-semibold text-gray-900">Atualizado</th>
+        <th class="px-3 py-2"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 bg-white">
+      {% for fam in familias %}
+      <tr>
+        <td class="px-3 py-2 text-sm text-gray-900">{{ fam.cod_familiar_fam }}</td>
+        <td class="px-3 py-2 text-sm text-gray-700">{{ fam.membros.count }}</td>
+        <td class="px-3 py-2 text-sm text-gray-700">{{ fam.dat_atual_fam|date:'d/m/Y' }}</td>
+        <td class="px-3 py-2 text-right">
+          <a href="{% url 'cecad_pessoa_transfer_confirm' pessoa_pk=pessoa_pk dest_familia_pk=fam.pk %}" class="text-emerald-600 hover:text-emerald-800 text-sm">Selecionar</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% if familias.has_other_pages %}
+<div class="mt-3 flex items-center gap-2 text-sm">
+  {% if familias.has_previous %}
+    <a hx-get="?q={{ q }}&page={{ familias.previous_page_number }}" hx-target="#transfer-results" class="px-2 py-1 ring-1 ring-gray-300 rounded">Anterior</a>
+  {% endif %}
+  <span>Página {{ familias.number }} de {{ familias.paginator.num_pages }}</span>
+  {% if familias.has_next %}
+    <a hx-get="?q={{ q }}&page={{ familias.next_page_number }}" hx-target="#transfer-results" class="px-2 py-1 ring-1 ring-gray-300 rounded">Próxima</a>
+  {% endif %}
+</div>
+{% endif %}
+{% else %}
+<p class="text-gray-500">Nenhuma família encontrada.</p>
+{% endif %}
