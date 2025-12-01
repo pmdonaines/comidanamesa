@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 class ImportBatch(models.Model):
     STATUS_CHOICES = [
@@ -26,7 +27,7 @@ class ImportBatch(models.Model):
 
 
 class Familia(models.Model):
-    import_batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name="familias", verbose_name="Lote de Importação", null=True)
+    import_batch = models.ForeignKey(ImportBatch, on_delete=models.CASCADE, related_name="familias", verbose_name="Lote de Importação", null=True, blank=True)
     cod_familiar_fam = models.CharField("Código Familiar", max_length=11)
     dat_atual_fam = models.DateField("Data de Atualização")
     vlr_renda_media_fam = models.DecimalField("Renda Média Familiar", max_digits=10, decimal_places=2, null=True, blank=True)
@@ -49,7 +50,19 @@ class Familia(models.Model):
         verbose_name = "Família"
         verbose_name_plural = "Famílias"
         ordering = ["-dat_atual_fam"]
-        unique_together = ['cod_familiar_fam', 'import_batch']
+        # Permitir múltiplas famílias com mesmo código se forem de batches diferentes ou sem batch
+        constraints = [
+            models.UniqueConstraint(
+                fields=['cod_familiar_fam', 'import_batch'],
+                name='unique_familia_per_batch',
+                condition=models.Q(import_batch__isnull=False)
+            ),
+            models.UniqueConstraint(
+                fields=['cod_familiar_fam'],
+                name='unique_manual_familia',
+                condition=models.Q(import_batch__isnull=True)
+            )
+        ]
 
     def __str__(self):
         return f"{self.cod_familiar_fam} - Renda: {self.vlr_renda_media_fam}"
@@ -150,3 +163,22 @@ class Beneficio(models.Model):
     def import_batch(self):
         """Acesso transitivo ao import_batch via familia."""
         return self.familia.import_batch if self.familia else None
+
+
+class PessoaTransferHistory(models.Model):
+    pessoa = models.ForeignKey(Pessoa, on_delete=models.CASCADE, related_name='transferencias')
+    origem = models.ForeignKey(Familia, on_delete=models.SET_NULL, null=True, related_name='transferencias_saida')
+    destino = models.ForeignKey(Familia, on_delete=models.SET_NULL, null=True, related_name='transferencias_entrada')
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    transferido_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Histórico de Transferência'
+        verbose_name_plural = 'Históricos de Transferência'
+        ordering = ['-transferido_em']
+
+    def __str__(self):
+        pessoa = self.pessoa.nom_pessoa if self.pessoa_id else 'Pessoa removida'
+        o = self.origem.cod_familiar_fam if self.origem_id else '-'
+        d = self.destino.cod_familiar_fam if self.destino_id else '-'
+        return f"{pessoa}: {o} -> {d} em {self.transferido_em:%d/%m/%Y %H:%M}"

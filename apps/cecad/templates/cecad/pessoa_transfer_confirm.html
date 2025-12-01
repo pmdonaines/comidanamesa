@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Confirmar Transferência{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h2 class="text-2xl font-bold text-gray-900">Confirmar Transferência</h2>
+    <p class="mt-1 text-sm text-gray-600">Confirme a transferência de <strong>{{ pessoa.nom_pessoa }}</strong> (NIS {{ pessoa.num_nis_pessoa_atual }}) para a família <strong>{{ dest_familia.cod_familiar_fam }}</strong>.</p>
+  </div>
+
+  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+    <div class="px-4 py-5 sm:p-6">
+      <form method="post">
+        {% csrf_token %}
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Parentesco na família de destino</label>
+          <select name="cod_parentesco_rf_pessoa" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+            {% for value,label in parentesco_choices %}
+              <option value="{{ value }}" {% if value == 11 %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <p class="mt-2 text-xs text-gray-500">Se escolher "Responsável Familiar", a família de destino não pode possuir RF existente.</p>
+        </div>
+        <div class="mt-4 flex items-center gap-3">
+          <a href="{% url 'cecad_familia_detail' pessoa.familia.pk %}" class="px-3 py-2 text-sm font-semibold rounded-md bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancelar</a>
+          <button type="submit" class="px-3 py-2 text-sm font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-500">Confirmar Transferência</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

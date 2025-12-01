@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Familia, Pessoa, Beneficio
+from .models import Familia, Pessoa, Beneficio, PessoaTransferHistory
 
 @admin.register(Familia)
 class FamiliaAdmin(admin.ModelAdmin):
@@ -17,3 +17,10 @@ class PessoaAdmin(admin.ModelAdmin):
 class BeneficioAdmin(admin.ModelAdmin):
     list_display = ('tipo_beneficio', 'valor', 'familia', 'data_referencia')
     list_filter = ('tipo_beneficio', 'data_referencia')
+
+
+@admin.register(PessoaTransferHistory)
+class PessoaTransferHistoryAdmin(admin.ModelAdmin):
+    list_display = ('pessoa', 'origem', 'destino', 'usuario', 'transferido_em')
+    list_filter = ('usuario', 'transferido_em')
+    search_fields = ('pessoa__nom_pessoa', 'origem__cod_familiar_fam', 'destino__cod_familiar_fam')

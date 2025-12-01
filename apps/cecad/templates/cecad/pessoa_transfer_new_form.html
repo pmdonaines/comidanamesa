@@ -1,0 +1,25 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Nova Família para Transferência{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h2 class="text-2xl font-bold text-gray-900">Criar nova família</h2>
+    <p class="mt-1 text-sm text-gray-600">A nova família será vinculada ao último lote importado. Após salvar, você confirmará a transferência de <strong>{{ pessoa.nom_pessoa }}</strong>.</p>
+  </div>
+
+  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+    <div class="px-4 py-5 sm:p-6">
+      <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="mt-4 flex items-center gap-3">
+          <a href="{% url 'cecad_familia_detail' pessoa.familia.pk %}" class="px-3 py-2 text-sm font-semibold rounded-md bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancelar</a>
+          <button type="submit" class="px-3 py-2 text-sm font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-500">Salvar e continuar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

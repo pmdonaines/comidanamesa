@@ -1,0 +1,78 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Transferir Pessoa - Comida na Mesa{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div>
+    <h2 class="text-2xl font-bold text-gray-900">Transferir Pessoa</h2>
+    <p class="mt-1 text-sm text-gray-600">Selecione o destino para transferir <strong>{{ pessoa.nom_pessoa }}</strong> (NIS {{ pessoa.num_nis_pessoa_atual }})</p>
+  </div>
+
+  <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+    <div class="px-4 py-5 sm:p-6">
+      <div class="mb-4 flex gap-2">
+        <button type="button" id="tab-existente" class="px-3 py-2 text-sm font-semibold rounded-md bg-emerald-600 text-white" onclick="showTab('existente')">Família existente</button>
+        <button type="button" id="tab-nova" class="px-3 py-2 text-sm font-semibold rounded-md bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" onclick="showTab('nova')">Criar nova família</button>
+      </div>
+
+      <div id="box-existente">
+        <form class="max-w-xl">
+          <label class="block text-sm font-medium text-gray-700">Buscar família</label>
+          <input type="text" name="q" id="transfer-search" placeholder="Código familiar ou nome de membro" value="{{ q|default:'' }}" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                 hx-get="{% url 'cecad_pessoa_transfer_search_familias' pessoa.pk %}"
+                 hx-target="#transfer-results"
+                 hx-trigger="keyup changed delay:300ms"
+                 hx-params="serialize" 
+                 hx-vals='{"exclude": "{{ familia.pk }}"}' />
+        </form>
+        <div id="transfer-results" class="mt-4 text-sm text-gray-700">
+          {% if familias %}
+            {% include 'cecad/pessoa_transfer_existing_results.html' %}
+          {% else %}
+            <p class="text-gray-500">Digite para buscar famílias...</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div id="box-nova" class="hidden">
+        <p class="text-sm text-gray-600 mb-4">A nova família será atribuída automaticamente ao último lote importado.</p>
+        <form method="post" action="{% url 'cecad_pessoa_transfer_create_familia' pessoa.pk %}">
+          {% csrf_token %}
+          {{ familia_form.as_p }}
+          <div class="mt-4 flex items-center gap-3">
+            <a href="{% url 'cecad_familia_detail' familia.pk %}" class="px-3 py-2 text-sm font-semibold rounded-md bg-white text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Cancelar</a>
+            <button type="submit" class="px-3 py-2 text-sm font-semibold rounded-md bg-emerald-600 text-white hover:bg-emerald-500">Criar família e continuar</button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  const ex = document.getElementById('box-existente');
+  const nv = document.getElementById('box-nova');
+  const tabEx = document.getElementById('tab-existente');
+  const tabNv = document.getElementById('tab-nova');
+  if (tab === 'existente') {
+    ex.classList.remove('hidden');
+    nv.classList.add('hidden');
+    tabEx.classList.add('bg-emerald-600','text-white');
+    tabEx.classList.remove('bg-white','text-gray-900','ring-1','ring-inset','ring-gray-300');
+    tabNv.classList.remove('bg-emerald-600','text-white');
+    tabNv.classList.add('bg-white','text-gray-900','ring-1','ring-inset','ring-gray-300');
+  } else {
+    nv.classList.remove('hidden');
+    ex.classList.add('hidden');
+    tabNv.classList.add('bg-emerald-600','text-white');
+    tabNv.classList.remove('bg-white','text-gray-900','ring-1','ring-inset','ring-gray-300');
+    tabEx.classList.remove('bg-emerald-600','text-white');
+    tabEx.classList.add('bg-white','text-gray-900','ring-1','ring-inset','ring-gray-300');
+  }
+}
+</script>
+{% endblock %}
