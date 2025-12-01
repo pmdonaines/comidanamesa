@@ -17,6 +17,24 @@
 
     <!-- Form -->
     <form method="post" class="space-y-8">
+                <!-- Lote de Importação -->
+                <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
+                    <div class="px-4 py-6 sm:p-8">
+                        <div class="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                            <div class="sm:col-span-3">
+                                <label for="{{ form.import_batch.id_for_label }}" class="block text-sm font-medium leading-6 text-gray-900">
+                                    Lote de Importação <span class="text-red-500">*</span>
+                                </label>
+                                <div class="mt-2">
+                                    {{ form.import_batch }}
+                                </div>
+                                {% if form.import_batch.help_text %}
+                                <p class="mt-1 text-sm text-gray-500">{{ form.import_batch.help_text }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
         {% csrf_token %}
         
         <!-- Errors -->

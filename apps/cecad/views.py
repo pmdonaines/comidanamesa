@@ -301,13 +301,9 @@ class FamiliaCreateView(LoginRequiredMixin, CreateView):
         return reverse('cecad_familia_detail', kwargs={'pk': self.object.pk})
     
     def form_valid(self, form):
-        # Não associar a nenhum batch de importação (criação manual)
-        form.instance.import_batch = None
         response = super().form_valid(form)
-        
         # Criar validação automaticamente
         Validacao.objects.create(familia=self.object)
-        
         return response
 
 

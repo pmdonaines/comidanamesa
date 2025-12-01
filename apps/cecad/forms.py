@@ -10,6 +10,7 @@ class FamiliaForm(forms.ModelForm):
     class Meta:
         model = Familia
         fields = [
+            'import_batch',
             'cod_familiar_fam',
             'dat_atual_fam',
             'vlr_renda_media_fam',
@@ -24,6 +25,9 @@ class FamiliaForm(forms.ModelForm):
             'num_cep_logradouro_fam',
         ]
         widgets = {
+            'import_batch': forms.Select(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
+            }),
             'cod_familiar_fam': forms.TextInput(attrs={
                 'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500',
                 'placeholder': 'Ex: 12345678901',
@@ -76,6 +80,16 @@ class FamiliaForm(forms.ModelForm):
                 'maxlength': '8',
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.cecad.models import ImportBatch
+        # Seleciona apenas lotes concluídos e do tipo full
+        latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').order_by('-imported_at').first()
+        if latest_batch:
+            self.fields['import_batch'].initial = latest_batch.pk
+        self.fields['import_batch'].queryset = ImportBatch.objects.filter(status='completed', batch_type='full').order_by('-imported_at')
+        self.fields['import_batch'].required = True
     
     def clean_cod_familiar_fam(self):
         """Valida o código familiar."""
