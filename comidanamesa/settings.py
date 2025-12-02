@@ -65,6 +65,7 @@ INSTALLED_APPS = [
 
     'apps.core',
     'apps.cecad',
+    'apps.bsdi',
 ]
 
 MIDDLEWARE = [

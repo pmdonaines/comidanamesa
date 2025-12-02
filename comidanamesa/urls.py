@@ -21,4 +21,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apps.core.urls')),
     path('cecad/', include('apps.cecad.urls')),
+    path('bsdi/', include('apps.bsdi.urls')),
 ]
