@@ -18,17 +18,77 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         if latest_batch:
             context['total_familias'] = Familia.objects.filter(import_batch=latest_batch).count()
-            # Filter validations for families in the latest batch
             validacoes = Validacao.objects.filter(familia__import_batch=latest_batch)
             context['validacoes_pendentes'] = validacoes.filter(status='pendente').count()
             context['validacoes_aprovadas'] = validacoes.filter(status='aprovado').count()
             context['validacoes_reprovadas'] = validacoes.filter(status='reprovado').count()
+
+            # 1. Distribuição de status (para gráfico de pizza/barras)
+            context['grafico_status'] = {
+                'pendente': context['validacoes_pendentes'],
+                'aprovado': context['validacoes_aprovadas'],
+                'reprovado': context['validacoes_reprovadas'],
+            }
+
+            # 2. Evolução temporal dos lotes (últimos 6 lotes)
+            ultimos_lotes = ImportBatch.objects.filter(status='completed').order_by('-imported_at')[:6]
+            lotes_labels = [lote.imported_at.strftime('%d/%m') for lote in ultimos_lotes][::-1]
+            lotes_validados = [Validacao.objects.filter(familia__import_batch=lote, status='aprovado').count() for lote in ultimos_lotes][::-1]
+            lotes_reprovados = [Validacao.objects.filter(familia__import_batch=lote, status='reprovado').count() for lote in ultimos_lotes][::-1]
+            context['grafico_lotes'] = {
+                'labels': lotes_labels,
+                'aprovados': lotes_validados,
+                'reprovados': lotes_reprovados,
+            }
+
+            # 3. Perfil das famílias aprovadas (faixa de renda)
+            from django.db.models import F
+            faixas = [0, 100, 200, 300, 400, 600, 1000, 999999]
+            faixas_labels = [
+                'Até R$100', 'R$100-200', 'R$200-300', 'R$300-400', 'R$400-600', 'R$600-1000', 'Acima de R$1000'
+            ]
+            aprovadas = Familia.objects.filter(import_batch=latest_batch, validacoes__status='aprovado')
+            renda_faixa = [
+                aprovadas.filter(vlr_renda_media_fam__gte=faixas[i], vlr_renda_media_fam__lt=faixas[i+1]).count()
+                for i in range(len(faixas)-1)
+            ]
+            context['grafico_renda'] = {
+                'labels': faixas_labels,
+                'valores': renda_faixa,
+            }
+
+            # 4. Composição familiar (número de membros das famílias aprovadas)
+            membros_familias = aprovadas.annotate(num_membros=Count('membros')).values_list('num_membros', flat=True)
+            from collections import Counter
+            membros_count = Counter(membros_familias)
+            membros_labels = sorted(membros_count.keys())
+            membros_valores = [membros_count[n] for n in membros_labels]
+            context['grafico_membros'] = {
+                'labels': [str(n) + ' membros' for n in membros_labels],
+                'valores': membros_valores,
+            }
+
+            # 5. Critérios mais determinantes (top 5 critérios mais reprovados)
+            criterios_reprovados = ValidacaoCriterio.objects.filter(
+                validacao__familia__import_batch=latest_batch,
+                atendido=False,
+                aplicavel=True
+            ).values('criterio__descricao').annotate(qtd=Count('id')).order_by('-qtd')[:5]
+            context['grafico_criterios'] = {
+                'labels': [c['criterio__descricao'] for c in criterios_reprovados],
+                'valores': [c['qtd'] for c in criterios_reprovados],
+            }
         else:
             context['total_familias'] = 0
             context['validacoes_pendentes'] = 0
             context['validacoes_aprovadas'] = 0
             context['validacoes_reprovadas'] = 0
-            
+            context['grafico_status'] = {}
+            context['grafico_lotes'] = {'labels': [], 'aprovados': [], 'reprovados': []}
+            context['grafico_renda'] = {'labels': [], 'valores': []}
+            context['grafico_membros'] = {'labels': [], 'valores': []}
+            context['grafico_criterios'] = {'labels': [], 'valores': []}
+        
         return context
 
 class FilaValidacaoView(LoginRequiredMixin, ListView):

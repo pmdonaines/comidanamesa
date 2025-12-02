@@ -97,7 +97,7 @@
     </dl>
 
     <!-- Quick Actions / Recent Activity Placeholder -->
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-1">
         <div class="overflow-hidden rounded-lg bg-white shadow-sm border border-gray-200">
             <div class="p-6">
                 <h3 class="text-base font-semibold leading-6 text-gray-900">Ações Rápidas</h3>
@@ -141,11 +141,158 @@
             </div>
         </div>
 
-        <!-- Placeholder for future chart or list -->
-        <div
-            class="overflow-hidden rounded-lg bg-white shadow-sm border border-gray-200 p-6 flex items-center justify-center text-gray-400 text-sm italic">
-            Gráfico de evolução (Em breve)
+        <!-- Gráficos Estatísticos -->
+        <div class="overflow-hidden rounded-lg bg-white shadow-sm border border-gray-200 p-6">
+            <h3 class="text-base font-semibold leading-6 text-gray-900 mb-4">Estatísticas Visuais</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Gráfico de Status -->
+                <div>
+                    <h4 class="font-medium mb-2">Distribuição de Status</h4>
+                    <canvas id="graficoStatus"></canvas>
+                </div>
+                <!-- Gráfico de Evolução das Importações -->
+                <div>
+                    <h4 class="font-medium mb-2">Histórico de Importações CadÚnico (Aprovados/Reprovados)</h4>
+                    <canvas id="graficoLotes"></canvas>
+                </div>
+                <!-- Gráfico de Faixa de Renda -->
+                <div>
+                    <h4 class="font-medium mb-2">Faixa de Renda das Famílias Aprovadas</h4>
+                    <canvas id="graficoRenda"></canvas>
+                </div>
+                <!-- Gráfico de Composição Familiar -->
+                <div>
+                    <h4 class="font-medium mb-2">Composição Familiar (Aprovados)</h4>
+                    <canvas id="graficoMembros"></canvas>
+                </div>
+                <!-- Gráfico de Critérios mais Reprovados -->
+                <div class="md:col-span-2">
+                    <h4 class="font-medium mb-2">Critérios Mais Reprovados</h4>
+                    <canvas id="graficoCriterios"></canvas>
+                </div>
+            </div>
         </div>
+    {% block extra_js %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    // Dados do contexto Django para JS
+    const graficoStatus = {
+        labels: ['Pendentes', 'Aprovados', 'Reprovados'],
+        data: [
+            {{ grafico_status.pendente|default:0 }},
+            {{ grafico_status.aprovado|default:0 }},
+            {{ grafico_status.reprovado|default:0 }}
+        ]
+    };
+    const graficoLotes = {
+        labels: {{ grafico_lotes.labels|safe }},
+        aprovados: {{ grafico_lotes.aprovados|safe }},
+        reprovados: {{ grafico_lotes.reprovados|safe }}
+    };
+    const graficoRenda = {
+        labels: {{ grafico_renda.labels|safe }},
+        valores: {{ grafico_renda.valores|safe }}
+    };
+    const graficoMembros = {
+        labels: {{ grafico_membros.labels|safe }},
+        valores: {{ grafico_membros.valores|safe }}
+    };
+    const graficoCriterios = {
+        labels: {{ grafico_criterios.labels|safe }},
+        valores: {{ grafico_criterios.valores|safe }}
+    };
+
+    // Gráfico de Status (Pizza)
+    new Chart(document.getElementById('graficoStatus'), {
+        type: 'doughnut',
+        data: {
+            labels: graficoStatus.labels,
+            datasets: [{
+                data: graficoStatus.data,
+                backgroundColor: ['#facc15', '#22c55e', '#ef4444'],
+            }]
+        },
+        options: {
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    // Gráfico de Lotes (Linhas)
+    new Chart(document.getElementById('graficoLotes'), {
+        type: 'line',
+        data: {
+            labels: graficoLotes.labels,
+            datasets: [
+                {
+                    label: 'Aprovados',
+                    data: graficoLotes.aprovados,
+                    borderColor: '#22c55e',
+                    backgroundColor: 'rgba(34,197,94,0.2)',
+                    tension: 0.3
+                },
+                {
+                    label: 'Reprovados',
+                    data: graficoLotes.reprovados,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239,68,68,0.2)',
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    // Gráfico de Renda (Barras)
+    new Chart(document.getElementById('graficoRenda'), {
+        type: 'bar',
+        data: {
+            labels: graficoRenda.labels,
+            datasets: [{
+                label: 'Famílias',
+                data: graficoRenda.valores,
+                backgroundColor: '#0ea5e9',
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Gráfico de Membros (Barras)
+    new Chart(document.getElementById('graficoMembros'), {
+        type: 'bar',
+        data: {
+            labels: graficoMembros.labels,
+            datasets: [{
+                label: 'Famílias',
+                data: graficoMembros.valores,
+                backgroundColor: '#6366f1',
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    // Gráfico de Critérios (Barras)
+    new Chart(document.getElementById('graficoCriterios'), {
+        type: 'bar',
+        data: {
+            labels: graficoCriterios.labels,
+            datasets: [{
+                label: 'Reprovações',
+                data: graficoCriterios.valores,
+                backgroundColor: '#f59e42',
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } }
+        }
+    });
+    </script>
+    {% endblock %}
     </div>
 </div>
 {% endblock %}
