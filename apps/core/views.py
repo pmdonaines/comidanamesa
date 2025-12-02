@@ -391,13 +391,14 @@ class RelatoriosView(LoginRequiredMixin, ListView):
     context_object_name = 'validacoes'
     paginate_by = 50
 
-    def get_queryset(self):
+    def get_base_queryset(self):
+        """Retorna queryset base sem paginação para uso em exportações."""
         # Filter by latest batch by default
         latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
         if not latest_batch:
             return Validacao.objects.none()
 
-        queryset = super().get_queryset().select_related('familia').prefetch_related('familia__membros').filter(
+        queryset = Validacao.objects.select_related('familia').prefetch_related('familia__membros').filter(
             familia__import_batch=latest_batch
         )
         
@@ -423,6 +424,10 @@ class RelatoriosView(LoginRequiredMixin, ListView):
             ).distinct()
         
         return queryset.order_by('-pontuacao_total', 'familia__cod_familiar_fam')
+    
+    def get_queryset(self):
+        """Retorna queryset para listagem paginada."""
+        return self.get_base_queryset()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -446,21 +451,35 @@ class RelatoriosView(LoginRequiredMixin, ListView):
         
         return context
 
-    def render_to_response(self, context, **response_kwargs):
-        # Check if CSV export is requested
-        if self.request.GET.get('export') == 'csv':
-            return self.export_csv(context['validacoes'])
+    def get(self, request, *args, **kwargs):
+        """Override get para interceptar exportação antes da paginação."""
+        export_type = self.request.GET.get('export')
+        if export_type in ['todos', 'aprovados', 'reprovados']:
+            # Exportar diretamente sem passar pelo ciclo de renderização
+            return self.export_csv(self.get_base_queryset(), export_type)
         
-        return super().render_to_response(context, **response_kwargs)
+        # Continuar com o fluxo normal do ListView
+        return super().get(request, *args, **kwargs)
 
-    def export_csv(self, validacoes):
+    def export_csv(self, validacoes, export_type='todos'):
         import csv
         from django.http import HttpResponse
         
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="relatorio_validacoes.csv"'
+        # Filtrar validações por tipo de exportação
+        if export_type == 'aprovados':
+            validacoes = validacoes.filter(status='aprovado')
+            filename = 'relatorio_aprovados.csv'
+        elif export_type == 'reprovados':
+            validacoes = validacoes.filter(status='reprovado')
+            filename = 'relatorio_reprovados.csv'
+        else:
+            filename = 'relatorio_todos.csv'
         
-        writer = csv.writer(response)
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        # Usar ponto e vírgula como delimitador
+        writer = csv.writer(response, delimiter=';')
         writer.writerow([
             'Código Familiar',
             'Responsável',
