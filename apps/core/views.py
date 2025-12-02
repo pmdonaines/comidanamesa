@@ -535,8 +535,11 @@ class RelatoriosView(LoginRequiredMixin, ListView):
         else:
             filename = 'relatorio_todos.csv'
         
-        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response = HttpResponse(content_type='text/csv; charset=utf-8-sig')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        # Adicionar BOM UTF-8 para Excel reconhecer acentuação
+        response.write('\ufeff')
         
         # Usar ponto e vírgula como delimitador
         writer = csv.writer(response, delimiter=';')
