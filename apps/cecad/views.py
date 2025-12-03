@@ -547,14 +547,19 @@ class PessoaTransferCreateFamilyView(LoginRequiredMixin, CreateView):
         self.pessoa = get_object_or_404(Pessoa, pk=kwargs['pessoa_pk'])
         return super().dispatch(request, *args, **kwargs)
 
+    def get_success_url(self):
+        return reverse('cecad_pessoa_transfer_confirm', kwargs={
+            'pessoa_pk': self.pessoa.pk,
+            'dest_familia_pk': self.object.pk
+        })
+
     def form_valid(self, form):
         # Sempre vincular ao último lote importado (status concluído)
         last_batch = ImportBatch.objects.filter(status='completed').first()
         form.instance.import_batch = last_batch
         response = super().form_valid(form)
         messages.success(self.request, f'Família {self.object.cod_familiar_fam} criada e vinculada ao último lote.')
-        # Redireciona para confirmação de transferência
-        return redirect('cecad_pessoa_transfer_confirm', pessoa_pk=self.pessoa.pk, dest_familia_pk=self.object.pk)
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
