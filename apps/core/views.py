@@ -16,20 +16,28 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         latest_batch = ImportBatch.objects.filter(status='completed').order_by('-imported_at').first()
         context['latest_batch'] = latest_batch
 
+        # Filtro que inclui famílias do último lote OU famílias manuais (sem lote)
         if latest_batch:
-            context['total_familias'] = Familia.objects.filter(import_batch=latest_batch).count()
-            validacoes = Validacao.objects.filter(familia__import_batch=latest_batch)
-            context['validacoes_pendentes'] = validacoes.filter(status='pendente').count()
-            context['validacoes_aprovadas'] = validacoes.filter(status='aprovado').count()
-            context['validacoes_reprovadas'] = validacoes.filter(status='reprovado').count()
+            familia_filter = Q(import_batch=latest_batch) | Q(import_batch__isnull=True)
+            validacao_filter = Q(familia__import_batch=latest_batch) | Q(familia__import_batch__isnull=True)
+        else:
+            familia_filter = Q(import_batch__isnull=True)
+            validacao_filter = Q(familia__import_batch__isnull=True)
+        
+        context['total_familias'] = Familia.objects.filter(familia_filter).count()
+        validacoes = Validacao.objects.filter(validacao_filter)
+        context['validacoes_pendentes'] = validacoes.filter(status='pendente').count()
+        context['validacoes_aprovadas'] = validacoes.filter(status='aprovado').count()
+        context['validacoes_reprovadas'] = validacoes.filter(status='reprovado').count()
 
-            # 1. Distribuição de status (para gráfico de pizza/barras)
-            context['grafico_status'] = {
-                'pendente': context['validacoes_pendentes'],
-                'aprovado': context['validacoes_aprovadas'],
-                'reprovado': context['validacoes_reprovadas'],
-            }
+        # 1. Distribuição de status (para gráfico de pizza/barras)
+        context['grafico_status'] = {
+            'pendente': context['validacoes_pendentes'],
+            'aprovado': context['validacoes_aprovadas'],
+            'reprovado': context['validacoes_reprovadas'],
+        }
 
+        if latest_batch:
             # 2. Evolução temporal dos lotes (últimos 6 lotes)
             ultimos_lotes = ImportBatch.objects.filter(status='completed').order_by('-imported_at')[:6]
             lotes_labels = [lote.imported_at.strftime('%d/%m') for lote in ultimos_lotes][::-1]
@@ -41,13 +49,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'reprovados': lotes_reprovados,
             }
 
-            # 3. Perfil das famílias aprovadas (faixa de renda)
+            # 3. Perfil das famílias aprovadas (faixa de renda) - inclui famílias manuais
             from django.db.models import F
             faixas = [0, 100, 200, 300, 400, 600, 1000, 999999]
             faixas_labels = [
                 'Até R$100', 'R$100-200', 'R$200-300', 'R$300-400', 'R$400-600', 'R$600-1000', 'Acima de R$1000'
             ]
-            aprovadas = Familia.objects.filter(import_batch=latest_batch, validacoes__status='aprovado')
+            aprovadas = Familia.objects.filter(familia_filter, validacoes__status='aprovado')
             renda_faixa = [
                 aprovadas.filter(vlr_renda_media_fam__gte=faixas[i], vlr_renda_media_fam__lt=faixas[i+1]).count()
                 for i in range(len(faixas)-1)
@@ -68,9 +76,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'valores': membros_valores,
             }
 
-            # 5. Critérios mais determinantes (top 5 critérios mais reprovados)
+            # 5. Critérios mais determinantes (top 5 critérios mais reprovados) - inclui famílias manuais
             criterios_reprovados = ValidacaoCriterio.objects.filter(
-                validacao__familia__import_batch=latest_batch,
+                validacao_filter,
                 atendido=False,
                 aplicavel=True
             ).values('criterio__descricao').annotate(qtd=Count('id')).order_by('-qtd')[:5]
@@ -79,11 +87,6 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'valores': [c['qtd'] for c in criterios_reprovados],
             }
         else:
-            context['total_familias'] = 0
-            context['validacoes_pendentes'] = 0
-            context['validacoes_aprovadas'] = 0
-            context['validacoes_reprovadas'] = 0
-            context['grafico_status'] = {}
             context['grafico_lotes'] = {'labels': [], 'aprovados': [], 'reprovados': []}
             context['grafico_renda'] = {'labels': [], 'valores': []}
             context['grafico_membros'] = {'labels': [], 'valores': []}
@@ -98,14 +101,20 @@ class FilaValidacaoView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        # Filter by latest batch by default
+        # Filter by latest batch OR families without batch (manual entries)
         latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
-        if not latest_batch:
-            return Validacao.objects.none()
-
-        queryset = Validacao.objects.select_related('familia').filter(
-            familia__import_batch=latest_batch
-        )
+        
+        # Include families from latest batch OR families without import_batch (manual entries)
+        queryset = Validacao.objects.select_related('familia')
+        
+        if latest_batch:
+            # Famílias do último lote completo OU famílias cadastradas manualmente (sem lote)
+            queryset = queryset.filter(
+                Q(familia__import_batch=latest_batch) | Q(familia__import_batch__isnull=True)
+            )
+        else:
+            # Se não há lote, mostrar apenas famílias manuais
+            queryset = queryset.filter(familia__import_batch__isnull=True)
         
         status = self.request.GET.get('status')
         if status and status != 'todos':
@@ -204,10 +213,27 @@ class ValidacaoDetailView(LoginRequiredMixin, DetailView):
         # Calcular quantidade de famílias no domicílio
         # Domicílio é identificado pelos primeiros 8 dígitos do código familiar
         cod_domicilio = self.object.familia.cod_familiar_fam[:8]
-        context['qtde_familias_domicilio'] = Familia.objects.filter(
-            import_batch=self.object.familia.import_batch,
-            cod_familiar_fam__startswith=cod_domicilio
-        ).count()
+        
+        # Para famílias manuais (sem lote), buscar entre todas famílias manuais
+        # Para famílias importadas, buscar no mesmo lote OU entre famílias manuais
+        if self.object.familia.import_batch:
+            context['qtde_familias_domicilio'] = Familia.objects.filter(
+                Q(import_batch=self.object.familia.import_batch) | Q(import_batch__isnull=True),
+                cod_familiar_fam__startswith=cod_domicilio
+            ).count()
+        else:
+            # Família manual: buscar apenas entre famílias manuais ou do último lote
+            latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
+            if latest_batch:
+                context['qtde_familias_domicilio'] = Familia.objects.filter(
+                    Q(import_batch=latest_batch) | Q(import_batch__isnull=True),
+                    cod_familiar_fam__startswith=cod_domicilio
+                ).count()
+            else:
+                context['qtde_familias_domicilio'] = Familia.objects.filter(
+                    import_batch__isnull=True,
+                    cod_familiar_fam__startswith=cod_domicilio
+                ).count()
         
         return context
 
@@ -373,15 +399,22 @@ class ListaAprovadosView(LoginRequiredMixin, ListView):
     paginate_by = 50
 
     def get_queryset(self):
-        # Filter by latest batch by default
+        # Filter by latest batch OR families without batch (manual entries)
         latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
-        if not latest_batch:
-            return Validacao.objects.none()
-
-        queryset = Validacao.objects.select_related('familia').filter(
-            familia__import_batch=latest_batch,
-            status='aprovado'
-        )
+        
+        # Include families from latest batch OR families without import_batch (manual entries)
+        queryset = Validacao.objects.select_related('familia')
+        
+        if latest_batch:
+            queryset = queryset.filter(
+                Q(familia__import_batch=latest_batch) | Q(familia__import_batch__isnull=True),
+                status='aprovado'
+            )
+        else:
+            queryset = queryset.filter(
+                familia__import_batch__isnull=True,
+                status='aprovado'
+            )
 
         # Search by person name
         search_query = self.request.GET.get('q', '').strip()
@@ -432,10 +465,27 @@ class ValidacaoViewOnlyView(LoginRequiredMixin, DetailView):
         
         # Calcular quantidade de famílias no domicílio
         cod_domicilio = self.object.familia.cod_familiar_fam[:8]
-        context['qtde_familias_domicilio'] = Familia.objects.filter(
-            import_batch=self.object.familia.import_batch,
-            cod_familiar_fam__startswith=cod_domicilio
-        ).count()
+        
+        # Para famílias manuais (sem lote), buscar entre todas famílias manuais
+        # Para famílias importadas, buscar no mesmo lote OU entre famílias manuais
+        if self.object.familia.import_batch:
+            context['qtde_familias_domicilio'] = Familia.objects.filter(
+                Q(import_batch=self.object.familia.import_batch) | Q(import_batch__isnull=True),
+                cod_familiar_fam__startswith=cod_domicilio
+            ).count()
+        else:
+            # Família manual: buscar apenas entre famílias manuais ou do último lote
+            latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
+            if latest_batch:
+                context['qtde_familias_domicilio'] = Familia.objects.filter(
+                    Q(import_batch=latest_batch) | Q(import_batch__isnull=True),
+                    cod_familiar_fam__startswith=cod_domicilio
+                ).count()
+            else:
+                context['qtde_familias_domicilio'] = Familia.objects.filter(
+                    import_batch__isnull=True,
+                    cod_familiar_fam__startswith=cod_domicilio
+                ).count()
         
         # Adicionar histórico de edições
         context['historico'] = self.object.historico_edicoes.select_related(
@@ -453,14 +503,18 @@ class RelatoriosView(LoginRequiredMixin, ListView):
 
     def get_base_queryset(self):
         """Retorna queryset base sem paginação para uso em exportações."""
-        # Filter by latest batch by default
+        # Filter by latest batch OR families without batch (manual entries)
         latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
-        if not latest_batch:
-            return Validacao.objects.none()
-
-        queryset = Validacao.objects.select_related('familia').prefetch_related('familia__membros').filter(
-            familia__import_batch=latest_batch
-        )
+        
+        # Include families from latest batch OR families without import_batch (manual entries)
+        queryset = Validacao.objects.select_related('familia').prefetch_related('familia__membros')
+        
+        if latest_batch:
+            queryset = queryset.filter(
+                Q(familia__import_batch=latest_batch) | Q(familia__import_batch__isnull=True)
+            )
+        else:
+            queryset = queryset.filter(familia__import_batch__isnull=True)
         
         # Filter by status
         status = self.request.GET.get('status')
@@ -492,12 +546,14 @@ class RelatoriosView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Statistics (filtered by latest batch)
+        # Statistics (filtered by latest batch OR manual families)
         latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
         if latest_batch:
-            all_validacoes = Validacao.objects.filter(familia__import_batch=latest_batch)
+            all_validacoes = Validacao.objects.filter(
+                Q(familia__import_batch=latest_batch) | Q(familia__import_batch__isnull=True)
+            )
         else:
-            all_validacoes = Validacao.objects.none()
+            all_validacoes = Validacao.objects.filter(familia__import_batch__isnull=True)
 
         context['total_validacoes'] = all_validacoes.count()
         context['total_aprovadas'] = all_validacoes.filter(status='aprovado').count()
@@ -897,10 +953,27 @@ class ValidacaoEditView(LoginRequiredMixin, DetailView):
         
         # Calcular quantidade de famílias no domicílio
         cod_domicilio = self.object.familia.cod_familiar_fam[:8]
-        context['qtde_familias_domicilio'] = Familia.objects.filter(
-            import_batch=self.object.familia.import_batch,
-            cod_familiar_fam__startswith=cod_domicilio
-        ).count()
+        
+        # Para famílias manuais (sem lote), buscar entre todas famílias manuais
+        # Para famílias importadas, buscar no mesmo lote OU entre famílias manuais
+        if self.object.familia.import_batch:
+            context['qtde_familias_domicilio'] = Familia.objects.filter(
+                Q(import_batch=self.object.familia.import_batch) | Q(import_batch__isnull=True),
+                cod_familiar_fam__startswith=cod_domicilio
+            ).count()
+        else:
+            # Família manual: buscar apenas entre famílias manuais ou do último lote
+            latest_batch = ImportBatch.objects.filter(status='completed', batch_type='full').first()
+            if latest_batch:
+                context['qtde_familias_domicilio'] = Familia.objects.filter(
+                    Q(import_batch=latest_batch) | Q(import_batch__isnull=True),
+                    cod_familiar_fam__startswith=cod_domicilio
+                ).count()
+            else:
+                context['qtde_familias_domicilio'] = Familia.objects.filter(
+                    import_batch__isnull=True,
+                    cod_familiar_fam__startswith=cod_domicilio
+                ).count()
         
         return context
     

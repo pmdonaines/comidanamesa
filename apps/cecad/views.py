@@ -554,10 +554,16 @@ class PessoaTransferCreateFamilyView(LoginRequiredMixin, CreateView):
         })
 
     def form_valid(self, form):
+        from apps.core.models import Validacao
+        
         # Sempre vincular ao último lote importado (status concluído)
         last_batch = ImportBatch.objects.filter(status='completed').first()
         form.instance.import_batch = last_batch
         response = super().form_valid(form)
+        
+        # Criar validação automaticamente para a nova família
+        Validacao.objects.create(familia=self.object)
+        
         messages.success(self.request, f'Família {self.object.cod_familiar_fam} criada e vinculada ao último lote.')
         return response
 
@@ -586,6 +592,8 @@ class PessoaTransferConfirmView(LoginRequiredMixin, View):
         })
 
     def post(self, request, pessoa_pk, dest_familia_pk):
+        from apps.core.models import Validacao
+        
         pessoa = get_object_or_404(Pessoa, pk=pessoa_pk)
         dest_familia = get_object_or_404(Familia, pk=dest_familia_pk)
         if pessoa.familia_id == dest_familia.pk:
@@ -625,6 +633,10 @@ class PessoaTransferConfirmView(LoginRequiredMixin, View):
         except Exception:
             # Evitar quebrar o fluxo caso algo saia errado no histórico
             pass
+        
+        # Criar validação para família destino se ainda não existir
+        if not Validacao.objects.filter(familia=dest_familia).exists():
+            Validacao.objects.create(familia=dest_familia)
 
         messages.success(request, f"{pessoa.nom_pessoa} transferido(a) para a família {dest_familia.cod_familiar_fam}.")
         return redirect('cecad_familia_detail', pk=dest_familia.pk)
