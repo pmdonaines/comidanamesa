@@ -77,8 +77,10 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             }
 
             # 5. Critérios mais determinantes (top 5 critérios mais reprovados) - inclui famílias manuais
+            # Filtro para ValidacaoCriterio precisa passar por validacao__familia
+            validacao_criterio_filter = Q(validacao__familia__import_batch=latest_batch) | Q(validacao__familia__import_batch__isnull=True)
             criterios_reprovados = ValidacaoCriterio.objects.filter(
-                validacao_filter,
+                validacao_criterio_filter,
                 atendido=False,
                 aplicavel=True
             ).values('criterio__descricao').annotate(qtd=Count('id')).order_by('-qtd')[:5]
