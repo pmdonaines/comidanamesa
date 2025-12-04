@@ -1,0 +1,261 @@
+{% extends 'core/base.html' %}
+{% load core_extras %}
+
+{% block title %}Relatórios de Famílias{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-6 px-4">
+    <h1 class="text-3xl font-bold mb-6">Relatórios de Composição Familiar</h1>
+    
+    <!-- Filtros -->
+    <div class="bg-gray-100 p-4 rounded mb-6 shadow">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Lote de Importação</label>
+                <select name="import_batch" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Mais Recente</option>
+                    {% for batch in import_batches %}
+                        <option value="{{ batch.id }}" {% if batch.id == import_batch_selecionado.id %}selected{% endif %}>
+                            {{ batch.imported_at|date:"d/m/Y" }} ({{ batch.total_rows }} famílias)
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">Bairro</label>
+                <select name="bairro" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Todos</option>
+                    {% for bairro in bairros %}
+                        <option value="{{ bairro }}" {% if bairro == bairro_filtro %}selected{% endif %}>
+                            {{ bairro }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-semibold transition">
+                    🔍 Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Tabela de Relatórios -->
+    <div class="bg-white rounded shadow-md p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">Resumo por Tipo de Composição Familiar</h2>
+        
+        {% if import_batch_selecionado %}
+            <p class="text-sm text-gray-600 mb-4">
+                📅 Dados de: <strong>{{ import_batch_selecionado.imported_at|date:"d/m/Y H:i" }}</strong>
+                {% if bairro_filtro %}
+                    | 📍 Bairro: <strong>{{ bairro_filtro }}</strong>
+                {% endif %}
+            </p>
+        {% else %}
+            <p class="text-sm text-yellow-600 mb-4 bg-yellow-50 p-3 rounded">
+                ⚠️ Nenhum lote de importação disponível. Por favor, importe dados primeiro.
+            </p>
+        {% endif %}
+        
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border px-4 py-3 text-left font-semibold text-gray-800">Tipo de Composição</th>
+                        <th class="border px-4 py-3 text-center font-semibold text-gray-800">Total</th>
+                        <th class="border px-4 py-3 text-center font-semibold text-gray-800">Aprovados</th>
+                        <th class="border px-4 py-3 text-center font-semibold text-gray-800">Reprovados</th>
+                        <th class="border px-4 py-3 text-center font-semibold text-gray-800">% Aprovação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Mães Solo -->
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="border px-4 py-3 font-semibold text-gray-900">👩 Mães Solo (sem cônjuge)</td>
+                        <td class="border px-4 py-3 text-center text-lg font-semibold">{{ maes_solo.total }}</td>
+                        <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ maes_solo.aprovados }}</td>
+                        <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ maes_solo.reprovados }}</td>
+                        <td class="border px-4 py-3 text-center font-semibold">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ maes_solo.percentual_aprovacao|floatformat:1 }}%</span>
+                        </td>
+                    </tr>
+                    
+                    <!-- Unipessoa -->
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="border px-4 py-3 font-semibold text-gray-900">👤 Famílias Unipessoais</td>
+                        <td class="border px-4 py-3 text-center text-lg font-semibold">{{ unipessoa.total }}</td>
+                        <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ unipessoa.aprovados }}</td>
+                        <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ unipessoa.reprovados }}</td>
+                        <td class="border px-4 py-3 text-center font-semibold">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ unipessoa.percentual_aprovacao|floatformat:1 }}%</span>
+                        </td>
+                    </tr>
+                    
+                    <!-- Casal sem Filho -->
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="border px-4 py-3 font-semibold text-gray-900">👫 Casal sem Filhos</td>
+                        <td class="border px-4 py-3 text-center text-lg font-semibold">{{ casal_sem_filho.total }}</td>
+                        <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ casal_sem_filho.aprovados }}</td>
+                        <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ casal_sem_filho.reprovados }}</td>
+                        <td class="border px-4 py-3 text-center font-semibold">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ casal_sem_filho.percentual_aprovacao|floatformat:1 }}%</span>
+                        </td>
+                    </tr>
+                    
+                    <!-- Famílias com Filhos -->
+                    {% for categoria, dados in filhos_quantitativos.items %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="border px-4 py-3 font-semibold text-gray-900">
+                            👨‍👩‍👧
+                            {% if categoria == "5+" %}
+                                5 ou mais filhos
+                            {% else %}
+                                {{ categoria }} filho{% if categoria != "1" %}s{% endif %}
+                            {% endif %}
+                        </td>
+                        <td class="border px-4 py-3 text-center text-lg font-semibold">{{ dados.total }}</td>
+                        <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ dados.aprovados }}</td>
+                        <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ dados.reprovados }}</td>
+                        <td class="border px-4 py-3 text-center font-semibold">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ dados.percentual_aprovacao|floatformat:1 }}%</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Gráfico Comparativo -->
+    {% if import_batch_selecionado %}
+    <div class="bg-white rounded shadow-md p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">📊 Gráfico Comparativo: Total vs Aprovados</h2>
+        <div style="position: relative; height: 300px;">
+            <!-- Dados 5+ em atributo data para acesso via JavaScript -->
+            <canvas id="graficoComparativo" 
+                    data-filhos5-total="{{ filhos_quantitativos|get_item:"5+"|get_item:"total" }}"
+                    data-filhos5-aprovados="{{ filhos_quantitativos|get_item:"5+"|get_item:"aprovados" }}"></canvas>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Tabela por Bairro -->
+    <div class="bg-white rounded shadow-md p-6">
+        <h2 class="text-xl font-bold mb-4 text-gray-800">🏘️ Distribuição por Bairro</h2>
+        
+        {% if por_bairro %}
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+                    <thead class="bg-gray-200">
+                        <tr>
+                            <th class="border px-4 py-3 text-left font-semibold text-gray-800">Bairro</th>
+                            <th class="border px-4 py-3 text-center font-semibold text-gray-800">Total</th>
+                            <th class="border px-4 py-3 text-center font-semibold text-gray-800">Aprovados</th>
+                            <th class="border px-4 py-3 text-center font-semibold text-gray-800">Reprovados</th>
+                            <th class="border px-4 py-3 text-center font-semibold text-gray-800">% Aprovação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for bairro, dados in por_bairro.items %}
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="border px-4 py-3 font-semibold text-gray-900">{{ bairro|default:"Sem Bairro" }}</td>
+                            <td class="border px-4 py-3 text-center text-lg font-semibold">{{ dados.total }}</td>
+                            <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ dados.aprovados }}</td>
+                            <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ dados.reprovados }}</td>
+                            <td class="border px-4 py-3 text-center font-semibold">
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ dados.percentual_aprovacao|floatformat:1 }}%</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-gray-600 text-center py-4">Nenhum dado de bairro disponível.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+    // Verificar se o canvas existe antes de criar o gráfico
+    var canvasElement = document.getElementById('graficoComparativo');
+    if (canvasElement) {
+        const ctx = canvasElement.getContext('2d');
+        
+        // Ler dados dos atributos data
+        const filhos5Total = parseInt(canvasElement.dataset.filhos5Total) || 0;
+        const filhos5Aprovados = parseInt(canvasElement.dataset.filhos5Aprovados) || 0;
+        
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    'Mães Solo',
+                    'Unipessoa',
+                    'Casal s/ Filhos',
+                    '2 Filhos',
+                    '3 Filhos',
+                    '4 Filhos',
+                    '5+ Filhos'
+                ],
+                datasets: [
+                    {
+                        label: 'Total',
+                        data: [
+                            {{ maes_solo.total }},
+                            {{ unipessoa.total }},
+                            {{ casal_sem_filho.total }},
+                            {{ filhos_quantitativos.2.total }},
+                            {{ filhos_quantitativos.3.total }},
+                            {{ filhos_quantitativos.4.total }},
+                            filhos5Total
+                        ],
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Aprovados',
+                        data: [
+                            {{ maes_solo.aprovados }},
+                            {{ unipessoa.aprovados }},
+                            {{ casal_sem_filho.aprovados }},
+                            {{ filhos_quantitativos.2.aprovados }},
+                            {{ filhos_quantitativos.3.aprovados }},
+                            {{ filhos_quantitativos.4.aprovados }},
+                            filhos5Aprovados
+                        ],
+                        backgroundColor: 'rgba(75, 192, 75, 0.6)',
+                        borderColor: 'rgba(75, 192, 75, 1)',
+                        borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Composição Familiar: Total vs Aprovados'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+
+{% endblock %}

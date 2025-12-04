@@ -23,6 +23,19 @@ def dict_get(dictionary, key):
 
 
 @register.filter
+def get_item(dictionary, key):
+    """Get value from dictionary by key - similar to dict_get, works with any key including '5+'."""
+    if dictionary is None:
+        return None
+    if hasattr(dictionary, 'get'):
+        return dictionary.get(key)
+    try:
+        return dictionary[key]
+    except (KeyError, TypeError):
+        return None
+
+
+@register.filter
 def multiply(value, arg):
     """Multiply value by arg."""
     try:

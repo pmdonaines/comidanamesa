@@ -1095,3 +1095,66 @@ class ValidacaoEditView(LoginRequiredMixin, DetailView):
             return False
         
         return True
+
+
+class RelatoriosFamiliasView(LoginRequiredMixin, TemplateView):
+    """
+    View para exibir relatórios de composição familiar com estatísticas.
+    
+    Exibe 5 tipos de relatórios:
+    1. Mães solo (sem cônjuge)
+    2. Famílias unipessoais
+    3. Casais sem filhos
+    4. Famílias por quantidade de filhos (2, 3, 4, 5+)
+    5. Distribuição por bairro
+    
+    Oferece filtros por import_batch e bairro.
+    """
+    template_name = 'core/relatorios_familias.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Importar aqui para evitar problemas de circular imports
+        from apps.core.services.familia_stats import FamiliaStatsService
+        
+        # Obter parametros de filtro
+        bairro = self.request.GET.get('bairro', '')
+        import_batch_id = self.request.GET.get('import_batch', '')
+        
+        # Determinar import_batch (padrão: mais recente)
+        try:
+            if import_batch_id:
+                import_batch = ImportBatch.objects.get(id=import_batch_id)
+            else:
+                import_batch = ImportBatch.objects.filter(
+                    status='completed'
+                ).order_by('-imported_at').first()
+        except ImportBatch.DoesNotExist:
+            import_batch = None
+        
+        # Inicializar serviço
+        filtros = {'bairro': bairro} if bairro else {}
+        stats = FamiliaStatsService(import_batch=import_batch, filtros=filtros)
+        
+        # Adicionar relatórios ao contexto
+        context.update({
+            'maes_solo': stats.get_maes_solo(),
+            'unipessoa': stats.get_unipessoa(),
+            'casal_sem_filho': stats.get_casal_sem_filho(),
+            'filhos_quantitativos': stats.get_filhos_quantitativos(),
+            'por_bairro': stats.get_por_bairro(min_familias=0),
+            
+            'import_batches': ImportBatch.objects.filter(
+                status='completed'
+            ).order_by('-imported_at'),
+            'import_batch_selecionado': import_batch,
+            'bairros': Familia.objects.exclude(
+                nom_localidade_fam__isnull=True
+            ).exclude(
+                nom_localidade_fam=''
+            ).values_list('nom_localidade_fam', flat=True).distinct().order_by('nom_localidade_fam'),
+            'bairro_filtro': bairro,
+        })
+        
+        return context
