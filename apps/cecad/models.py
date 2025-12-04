@@ -40,7 +40,7 @@ class Familia(models.Model):
     # Endereço
     nom_logradouro_fam = models.CharField("Logradouro", max_length=255, blank=True)
     num_logradouro_fam = models.CharField("Número", max_length=20, blank=True)
-    nom_localidade_fam = models.CharField("Bairro/Localidade", max_length=100, blank=True)
+    nom_localidade_fam = models.CharField("Bairro/Localidade", max_length=100, blank=True, db_index=True)
     num_cep_logradouro_fam = models.CharField("CEP", max_length=8, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

@@ -5,7 +5,7 @@ Fornece métodos para calcular estatísticas sobre composição familiar
 com filtros por bairro, import batch, e período de análise.
 """
 
-from django.db.models import Count, Q, Exists, OuterRef, QuerySet
+from django.db.models import Count, Q, Exists, OuterRef, QuerySet, IntegerField, Case, When, Sum
 from apps.cecad.models import Familia, Pessoa, ImportBatch
 from apps.core.models import Validacao
 
@@ -57,19 +57,28 @@ class FamiliaStatsService:
         Returns:
             dict com contagens por status
         """
-        familia_ids = familia_qs.values_list('id', flat=True)
-        validacoes = Validacao.objects.filter(familia_id__in=familia_ids)
-        
-        total = familia_qs.count()
-        aprovados = validacoes.filter(status='aprovado').values('familia_id').distinct().count()
-        reprovados = validacoes.filter(status='reprovado').values('familia_id').distinct().count()
-        
+        # Anotar existência de validações aprovadas/reprovadas por família e agregar no banco
+        familias = familia_qs.annotate(
+            has_aprovada=Exists(Validacao.objects.filter(familia_id=OuterRef('pk'), status='aprovado')),
+            has_reprovada=Exists(Validacao.objects.filter(familia_id=OuterRef('pk'), status='reprovado')),
+        )
+
+        ag = familias.aggregate(
+            total=Count('id', distinct=True),
+            aprovados=Sum(Case(When(has_aprovada=True, then=1), default=0, output_field=IntegerField())),
+            reprovados=Sum(Case(When(has_reprovada=True, then=1), default=0, output_field=IntegerField())),
+        )
+
+        total = ag.get('total') or 0
+        aprovados = ag.get('aprovados') or 0
+        reprovados = ag.get('reprovados') or 0
+
         percentual = (aprovados / total * 100) if total > 0 else 0
-        
+
         return {
-            'total': total,
-            'aprovados': aprovados,
-            'reprovados': reprovados,
+            'total': int(total),
+            'aprovados': int(aprovados),
+            'reprovados': int(reprovados),
             'percentual_aprovacao': round(percentual, 2)
         }
     
@@ -168,35 +177,39 @@ class FamiliaStatsService:
                 '5+': {...}
             }
         """
-        resultado = {}
-        categorias = ['2', '3', '4', '5+']
-        
-        for categoria in categorias:
-            familias_ids = []
-            
-            # Iterar sobre famílias para contar filhos
-            for familia in self.queryset_base:
-                num_filhos = self._contar_filhos(familia.id)
-                
-                if categoria == '5+':
-                    if num_filhos >= 5:
-                        familias_ids.append(familia.id)
-                else:
-                    if num_filhos == int(categoria):
-                        familias_ids.append(familia.id)
-            
-            # Contar por status
-            if familias_ids:
-                familias_qs = Familia.objects.filter(id__in=familias_ids)
-                resultado[categoria] = self._contar_por_status(familias_qs)
-            else:
-                resultado[categoria] = {
-                    'total': 0,
-                    'aprovados': 0,
-                    'reprovados': 0,
-                    'percentual_aprovacao': 0
-                }
-        
+        from django.db.models import IntegerField
+
+        resultado = {'2': None, '3': None, '4': None, '5+': None}
+
+        # Anotar número de filhos e presença de validações aprovadas/reprovadas
+        # Buscar uma linha por família com número de filhos e flags de aprovação
+        familias_annot = self.queryset_base.annotate(
+            num_filhos=Count('membros', filter=Q(membros__cod_parentesco_rf_pessoa=3)),
+            has_aprovada=Exists(Validacao.objects.filter(familia_id=OuterRef('pk'), status='aprovado')),
+            has_reprovada=Exists(Validacao.objects.filter(familia_id=OuterRef('pk'), status='reprovado')),
+        ).values('id', 'num_filhos', 'has_aprovada', 'has_reprovada')
+
+        # Inicializar zeros
+        for k in resultado.keys():
+            resultado[k] = {'total': 0, 'aprovados': 0, 'reprovados': 0, 'percentual_aprovacao': 0}
+
+        # Agregar em Python (uma query retornando uma linha por família)
+        for row in familias_annot:
+            n = row.get('num_filhos') or 0
+            key = '5+' if n >= 5 else str(n)
+            if key not in resultado:
+                continue
+            resultado[key]['total'] += 1
+            if row.get('has_aprovada'):
+                resultado[key]['aprovados'] += 1
+            if row.get('has_reprovada'):
+                resultado[key]['reprovados'] += 1
+
+        # Calcular percentuais
+        for k, v in resultado.items():
+            total = v['total']
+            v['percentual_aprovacao'] = round((v['aprovados'] / total * 100) if total > 0 else 0, 2)
+
         return resultado
     
     def get_por_bairro(self, min_familias=0) -> dict:
@@ -215,20 +228,37 @@ class FamiliaStatsService:
             }
         """
         resultado = {}
-        
-        # Agrupar familias por bairro
-        bairros = self.queryset_base.values('nom_localidade_fam').distinct()
-        
-        for bairro_dict in bairros:
-            bairro_nome = bairro_dict['nom_localidade_fam'] or 'Sem Bairro'
-            
-            # Filtrar famílias do bairro
-            familias_bairro = self.queryset_base.filter(
-                nom_localidade_fam=bairro_dict['nom_localidade_fam']
-            )
-            
-            # Aplicar filtro de mínimo de famílias
-            if familias_bairro.count() >= min_familias:
-                resultado[bairro_nome] = self._contar_por_status(familias_bairro)
-        
+
+        # Anotar existência de validações por família e agregar por bairro
+        # Buscar uma linha por família com flags de aprovação e bairro
+        familias_annot = self.queryset_base.annotate(
+            has_aprovada=Exists(Validacao.objects.filter(familia_id=OuterRef('pk'), status='aprovado')),
+            has_reprovada=Exists(Validacao.objects.filter(familia_id=OuterRef('pk'), status='reprovado')),
+        ).values('id', 'nom_localidade_fam', 'has_aprovada', 'has_reprovada')
+
+        # Agregar em Python por bairro (uma query retornando uma linha por família)
+        temp = {}
+        for row in familias_annot:
+            bairro_nome = row.get('nom_localidade_fam') or 'Sem Bairro'
+            if bairro_nome not in temp:
+                temp[bairro_nome] = {'total': 0, 'aprovados': 0, 'reprovados': 0}
+            temp[bairro_nome]['total'] += 1
+            if row.get('has_aprovada'):
+                temp[bairro_nome]['aprovados'] += 1
+            if row.get('has_reprovada'):
+                temp[bairro_nome]['reprovados'] += 1
+
+        for bairro_nome, counts in temp.items():
+            total = counts['total']
+            if total >= min_familias:
+                aprovados = counts['aprovados']
+                reprovados = counts['reprovados']
+                perc = (aprovados / total * 100) if total > 0 else 0
+                resultado[bairro_nome] = {
+                    'total': total,
+                    'aprovados': aprovados,
+                    'reprovados': reprovados,
+                    'percentual_aprovacao': round(perc, 2)
+                }
+
         return resultado

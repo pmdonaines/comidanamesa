@@ -119,7 +119,7 @@ class Validacao(models.Model):
 
     familia = models.ForeignKey(Familia, on_delete=models.CASCADE, related_name="validacoes")
     operador = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='validacoes_finalizadas')
-    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='pendente')
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default='pendente', db_index=True)
     observacoes = models.TextField("Observações", blank=True)
     pontuacao_total = models.IntegerField("Pontuação Total", default=0)
     data_validacao = models.DateTimeField("Data da Validação", null=True, blank=True)

@@ -41,84 +41,62 @@
     </div>
     
     <!-- Tabela de Relatórios -->
-    <div class="bg-white rounded shadow-md p-6 mb-6">
-        <h2 class="text-xl font-bold mb-4 text-gray-800">Resumo por Tipo de Composição Familiar</h2>
-        
-        {% if import_batch_selecionado %}
-            <p class="text-sm text-gray-600 mb-4">
-                📅 Dados de: <strong>{{ import_batch_selecionado.imported_at|date:"d/m/Y H:i" }}</strong>
-                {% if bairro_filtro %}
-                    | 📍 Bairro: <strong>{{ bairro_filtro }}</strong>
-                {% endif %}
-            </p>
-        {% else %}
-            <p class="text-sm text-yellow-600 mb-4 bg-yellow-50 p-3 rounded">
-                ⚠️ Nenhum lote de importação disponível. Por favor, importe dados primeiro.
-            </p>
-        {% endif %}
-        
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg overflow-hidden mb-6">
+        <div class="px-6 py-4">
+            <h2 class="text-xl font-bold text-gray-800">Resumo por Tipo de Composição Familiar</h2>
+            {% if import_batch_selecionado %}
+                <p class="text-sm text-gray-600 mt-2">
+                    📅 Dados de: <strong>{{ import_batch_selecionado.imported_at|date:"d/m/Y H:i" }}</strong>
+                    {% if bairro_filtro %} | 📍 Bairro: <strong>{{ bairro_filtro }}</strong>{% endif %}
+                </p>
+            {% else %}
+                <p class="text-sm text-yellow-600 mt-2 bg-yellow-50 p-2 rounded inline-block">⚠️ Nenhum lote de importação disponível.</p>
+            {% endif %}
+        </div>
+
         <div class="overflow-x-auto">
-            <table class="w-full border-collapse">
-                <thead class="bg-gray-200">
+            <table class="min-w-full divide-y divide-gray-300">
+                <thead class="bg-gray-50">
                     <tr>
-                        <th class="border px-4 py-3 text-left font-semibold text-gray-800">Tipo de Composição</th>
-                        <th class="border px-4 py-3 text-center font-semibold text-gray-800">Total</th>
-                        <th class="border px-4 py-3 text-center font-semibold text-gray-800">Aprovados</th>
-                        <th class="border px-4 py-3 text-center font-semibold text-gray-800">Reprovados</th>
-                        <th class="border px-4 py-3 text-center font-semibold text-gray-800">% Aprovação</th>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Tipo de Composição</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Aprovados</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Reprovados</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">% Aprovação</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <!-- Mães Solo -->
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="border px-4 py-3 font-semibold text-gray-900">👩 Mães Solo (sem cônjuge)</td>
-                        <td class="border px-4 py-3 text-center text-lg font-semibold">{{ maes_solo.total }}</td>
-                        <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ maes_solo.aprovados }}</td>
-                        <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ maes_solo.reprovados }}</td>
-                        <td class="border px-4 py-3 text-center font-semibold">
-                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ maes_solo.percentual_aprovacao|floatformat:1 }}%</span>
-                        </td>
+                <tbody class="divide-y divide-gray-200 bg-white">
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">👩 Mães Solo (sem cônjuge)</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-lg font-semibold">{{ maes_solo.total }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-green-600 font-semibold">{{ maes_solo.aprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-red-600 font-semibold">{{ maes_solo.reprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-sm"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ maes_solo.percentual_aprovacao|floatformat:1 }}%</span></td>
                     </tr>
-                    
-                    <!-- Unipessoa -->
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="border px-4 py-3 font-semibold text-gray-900">👤 Famílias Unipessoais</td>
-                        <td class="border px-4 py-3 text-center text-lg font-semibold">{{ unipessoa.total }}</td>
-                        <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ unipessoa.aprovados }}</td>
-                        <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ unipessoa.reprovados }}</td>
-                        <td class="border px-4 py-3 text-center font-semibold">
-                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ unipessoa.percentual_aprovacao|floatformat:1 }}%</span>
-                        </td>
+
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">👤 Famílias Unipessoais</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-lg font-semibold">{{ unipessoa.total }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-green-600 font-semibold">{{ unipessoa.aprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-red-600 font-semibold">{{ unipessoa.reprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-sm"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ unipessoa.percentual_aprovacao|floatformat:1 }}%</span></td>
                     </tr>
-                    
-                    <!-- Casal sem Filho -->
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="border px-4 py-3 font-semibold text-gray-900">👫 Casal sem Filhos</td>
-                        <td class="border px-4 py-3 text-center text-lg font-semibold">{{ casal_sem_filho.total }}</td>
-                        <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ casal_sem_filho.aprovados }}</td>
-                        <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ casal_sem_filho.reprovados }}</td>
-                        <td class="border px-4 py-3 text-center font-semibold">
-                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ casal_sem_filho.percentual_aprovacao|floatformat:1 }}%</span>
-                        </td>
+
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">👫 Casal sem Filhos</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-lg font-semibold">{{ casal_sem_filho.total }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-green-600 font-semibold">{{ casal_sem_filho.aprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-red-600 font-semibold">{{ casal_sem_filho.reprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-sm"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ casal_sem_filho.percentual_aprovacao|floatformat:1 }}%</span></td>
                     </tr>
-                    
-                    <!-- Famílias com Filhos -->
+
                     {% for categoria, dados in filhos_quantitativos.items %}
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="border px-4 py-3 font-semibold text-gray-900">
-                            👨‍👩‍👧
-                            {% if categoria == "5+" %}
-                                5 ou mais filhos
-                            {% else %}
-                                {{ categoria }} filho{% if categoria != "1" %}s{% endif %}
-                            {% endif %}
-                        </td>
-                        <td class="border px-4 py-3 text-center text-lg font-semibold">{{ dados.total }}</td>
-                        <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ dados.aprovados }}</td>
-                        <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ dados.reprovados }}</td>
-                        <td class="border px-4 py-3 text-center font-semibold">
-                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ dados.percentual_aprovacao|floatformat:1 }}%</span>
-                        </td>
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">👨‍👩‍👧 {% if categoria == "5+" %}5 ou mais filhos{% else %}{{ categoria }} filho{% if categoria != "1" %}s{% endif %}{% endif %}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-lg font-semibold">{{ dados.total }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-green-600 font-semibold">{{ dados.aprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-red-600 font-semibold">{{ dados.reprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-sm"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ dados.percentual_aprovacao|floatformat:1 }}%</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -140,36 +118,36 @@
     {% endif %}
     
     <!-- Tabela por Bairro -->
-    <div class="bg-white rounded shadow-md p-6">
-        <h2 class="text-xl font-bold mb-4 text-gray-800">🏘️ Distribuição por Bairro</h2>
-        
+    <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg overflow-hidden">
+        <div class="px-6 py-4">
+            <h2 class="text-xl font-bold text-gray-800">🏘️ Distribuição por Bairro</h2>
+        </div>
+
         {% if por_bairro %}
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse">
-                    <thead class="bg-gray-200">
-                        <tr>
-                            <th class="border px-4 py-3 text-left font-semibold text-gray-800">Bairro</th>
-                            <th class="border px-4 py-3 text-center font-semibold text-gray-800">Total</th>
-                            <th class="border px-4 py-3 text-center font-semibold text-gray-800">Aprovados</th>
-                            <th class="border px-4 py-3 text-center font-semibold text-gray-800">Reprovados</th>
-                            <th class="border px-4 py-3 text-center font-semibold text-gray-800">% Aprovação</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for bairro, dados in por_bairro.items %}
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="border px-4 py-3 font-semibold text-gray-900">{{ bairro|default:"Sem Bairro" }}</td>
-                            <td class="border px-4 py-3 text-center text-lg font-semibold">{{ dados.total }}</td>
-                            <td class="border px-4 py-3 text-center text-green-600 font-semibold">{{ dados.aprovados }}</td>
-                            <td class="border px-4 py-3 text-center text-red-600 font-semibold">{{ dados.reprovados }}</td>
-                            <td class="border px-4 py-3 text-center font-semibold">
-                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ dados.percentual_aprovacao|floatformat:1 }}%</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-300">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">Bairro</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Total</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Aprovados</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">Reprovados</th>
+                        <th scope="col" class="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">% Aprovação</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 bg-white">
+                    {% for bairro, dados in por_bairro.items %}
+                    <tr>
+                        <td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{{ bairro|default:"Sem Bairro" }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-lg font-semibold">{{ dados.total }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-green-600 font-semibold">{{ dados.aprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-red-600 font-semibold">{{ dados.reprovados }}</td>
+                        <td class="whitespace-nowrap px-3 py-4 text-center text-sm"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded">{{ dados.percentual_aprovacao|floatformat:1 }}%</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
             <p class="text-gray-600 text-center py-4">Nenhum dado de bairro disponível.</p>
         {% endif %}
