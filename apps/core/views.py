@@ -1109,20 +1109,24 @@ class RelatoriosFamiliasView(LoginRequiredMixin, TemplateView):
     5. Distribuição por bairro
     
     Oferece filtros por import_batch e bairro.
+    Suporta exportação em Excel com lista detalhada de famílias.
     """
     template_name = 'core/relatorios_familias.html'
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Importar aqui para evitar problemas de circular imports
+    def get(self, request, *args, **kwargs):
+        """Override get para interceptar exportação."""
+        export = request.GET.get('export')
+        if export:
+            return self.export_excel(export)
+        return super().get(request, *args, **kwargs)
+    
+    def _get_stats_service(self):
+        """Retorna instância de FamiliaStatsService com filtros aplicados."""
         from apps.core.services.familia_stats import FamiliaStatsService
         
-        # Obter parametros de filtro
         bairro = self.request.GET.get('bairro', '')
         import_batch_id = self.request.GET.get('import_batch', '')
         
-        # Determinar import_batch (padrão: mais recente)
         try:
             if import_batch_id:
                 import_batch = ImportBatch.objects.get(id=import_batch_id)
@@ -1133,9 +1137,31 @@ class RelatoriosFamiliasView(LoginRequiredMixin, TemplateView):
         except ImportBatch.DoesNotExist:
             import_batch = None
         
-        # Inicializar serviço
         filtros = {'bairro': bairro} if bairro else {}
-        stats = FamiliaStatsService(import_batch=import_batch, filtros=filtros)
+        return FamiliaStatsService(import_batch=import_batch, filtros=filtros)
+    
+    def export_excel(self, categoria: str):
+        """Exporta relatório em Excel."""
+        from django.http import HttpResponse
+        from apps.core.services.familia_export import FamiliaExportService
+        
+        stats = self._get_stats_service()
+        export_service = FamiliaExportService(stats)
+        
+        buffer = export_service.export_to_excel(categoria)
+        filename = export_service.get_filename(categoria)
+        
+        response = HttpResponse(
+            buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        stats = self._get_stats_service()
         
         # Adicionar relatórios ao contexto
         context.update({
@@ -1148,13 +1174,13 @@ class RelatoriosFamiliasView(LoginRequiredMixin, TemplateView):
             'import_batches': ImportBatch.objects.filter(
                 status='completed'
             ).order_by('-imported_at'),
-            'import_batch_selecionado': import_batch,
+            'import_batch_selecionado': stats.import_batch,
             'bairros': Familia.objects.exclude(
                 nom_localidade_fam__isnull=True
             ).exclude(
                 nom_localidade_fam=''
             ).values_list('nom_localidade_fam', flat=True).distinct().order_by('nom_localidade_fam'),
-            'bairro_filtro': bairro,
+            'bairro_filtro': stats.filtros.get('bairro', ''),
         })
         
         return context

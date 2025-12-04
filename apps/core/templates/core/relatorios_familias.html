@@ -5,7 +5,65 @@
 
 {% block content %}
 <div class="container mx-auto py-6 px-4">
-    <h1 class="text-3xl font-bold mb-6">Relatórios de Composição Familiar</h1>
+    <!-- Header com título e botões de exportação -->
+    <div class="md:flex md:items-center md:justify-between mb-6">
+        <div class="min-w-0 flex-1">
+            <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:text-3xl sm:tracking-tight">
+                Relatórios de Composição Familiar
+            </h1>
+            <p class="mt-2 text-sm text-gray-600">
+                Visualize estatísticas e exporte dados das famílias
+            </p>
+        </div>
+        <div class="mt-4 flex md:ml-4 md:mt-0 gap-2 flex-wrap">
+            <!-- Dropdown de Exportação -->
+            <div class="relative" x-data="{ open: false }">
+                <button @click="open = !open" type="button"
+                    class="inline-flex items-center gap-x-2 rounded-md bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500">
+                    <svg class="-ml-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.75 2.75a.75.75 0 00-1.5 0v8.614L6.295 8.235a.75.75 0 10-1.09 1.03l4.25 4.5a.75.75 0 001.09 0l4.25-4.5a.75.75 0 00-1.09-1.03l-2.955 3.129V2.75z" />
+                        <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
+                    </svg>
+                    Exportar Excel
+                    <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                
+                <div x-show="open" @click.away="open = false" x-transition
+                    class="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div class="py-1">
+                        <a href="?{{ request.GET.urlencode }}&export=todas" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            📋 Todas as Famílias
+                        </a>
+                        <hr class="my-1">
+                        <a href="?{{ request.GET.urlencode }}&export=maes_solo" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            👩 Mães Solo
+                        </a>
+                        <a href="?{{ request.GET.urlencode }}&export=unipessoa" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            👤 Famílias Unipessoais
+                        </a>
+                        <a href="?{{ request.GET.urlencode }}&export=casal_sem_filho" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            👫 Casal sem Filhos
+                        </a>
+                        <hr class="my-1">
+                        <a href="?{{ request.GET.urlencode }}&export=2" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            👨‍👩‍👧 2 filhos
+                        </a>
+                        <a href="?{{ request.GET.urlencode }}&export=3" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            👨‍👩‍👧 3 filhos
+                        </a>
+                        <a href="?{{ request.GET.urlencode }}&export=4" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            👨‍👩‍👧 4 filhos
+                        </a>
+                        <a href="?{{ request.GET.urlencode }}&export=5%2B" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            👨‍👩‍👧 5 ou mais filhos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     
     <!-- Filtros -->
     <div class="bg-gray-100 p-4 rounded mb-6 shadow">

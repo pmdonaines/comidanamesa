@@ -47,6 +47,10 @@ class FamiliaStatsService:
         
         return qs
     
+    def get_familias_queryset(self) -> QuerySet:
+        """Retorna o queryset base de famílias com filtros aplicados (para uso externo)."""
+        return self.queryset_base
+    
     def _contar_por_status(self, familia_qs: QuerySet) -> dict:
         """
         Conta famílias por status de validação.
@@ -82,17 +86,9 @@ class FamiliaStatsService:
             'percentual_aprovacao': round(percentual, 2)
         }
     
-    def get_maes_solo(self) -> dict:
-        """
-        Calcula estatísticas de famílias com mães solo (RF feminina sem cônjuge).
-        
-        Definição: RF feminina (cod_sexo_pessoa='2') sem cônjuge registrado.
-        
-        Returns:
-            dict com total, aprovados, reprovados e percentual_aprovacao
-        """
-        # RF feminina sem cônjuge
-        familias = self.queryset_base.annotate(
+    def _get_maes_solo_queryset(self) -> QuerySet:
+        """Retorna queryset de famílias com mães solo (RF feminina sem cônjuge)."""
+        return self.queryset_base.annotate(
             tem_conjugue=Exists(
                 Pessoa.objects.filter(
                     familia_id=OuterRef('id'),
@@ -110,9 +106,24 @@ class FamiliaStatsService:
             rf_feminina=True,
             tem_conjugue=False
         )
+
+    def get_maes_solo(self) -> dict:
+        """
+        Calcula estatísticas de famílias com mães solo (RF feminina sem cônjuge).
         
-        return self._contar_por_status(familias)
+        Definição: RF feminina (cod_sexo_pessoa='2') sem cônjuge registrado.
+        
+        Returns:
+            dict com total, aprovados, reprovados e percentual_aprovacao
+        """
+        return self._contar_por_status(self._get_maes_solo_queryset())
     
+    def _get_unipessoa_queryset(self) -> QuerySet:
+        """Retorna queryset de famílias unipessoais (1 membro)."""
+        return self.queryset_base.annotate(
+            num_pessoas=Count('membros')
+        ).filter(num_pessoas=1)
+
     def get_unipessoa(self) -> dict:
         """
         Calcula estatísticas de famílias unipessoais.
@@ -122,12 +133,18 @@ class FamiliaStatsService:
         Returns:
             dict com total, aprovados, reprovados e percentual_aprovacao
         """
-        familias = self.queryset_base.annotate(
-            num_pessoas=Count('membros')
-        ).filter(num_pessoas=1)
-        
-        return self._contar_por_status(familias)
+        return self._contar_por_status(self._get_unipessoa_queryset())
     
+    def _get_casal_sem_filho_queryset(self) -> QuerySet:
+        """Retorna queryset de casais sem filhos (2 membros, 0 filhos)."""
+        return self.queryset_base.annotate(
+            num_pessoas=Count('membros'),
+            num_filhos=Count(
+                'membros',
+                filter=Q(membros__cod_parentesco_rf_pessoa=3)  # Filho
+            )
+        ).filter(num_pessoas=2, num_filhos=0)
+
     def get_casal_sem_filho(self) -> dict:
         """
         Calcula estatísticas de casais sem filhos.
@@ -137,15 +154,7 @@ class FamiliaStatsService:
         Returns:
             dict com total, aprovados, reprovados e percentual_aprovacao
         """
-        familias = self.queryset_base.annotate(
-            num_pessoas=Count('membros'),
-            num_filhos=Count(
-                'membros',
-                filter=Q(membros__cod_parentesco_rf_pessoa=3)  # Filho
-            )
-        ).filter(num_pessoas=2, num_filhos=0)
-        
-        return self._contar_por_status(familias)
+        return self._contar_por_status(self._get_casal_sem_filho_queryset())
     
     def _contar_filhos(self, familia_id: int) -> int:
         """
@@ -262,3 +271,48 @@ class FamiliaStatsService:
                 }
 
         return resultado
+
+    def _get_filhos_queryset(self, num_filhos: int) -> QuerySet:
+        """
+        Retorna queryset de famílias com determinado número de filhos.
+        
+        Args:
+            num_filhos: Número exato de filhos (use 5 para '5+')
+        """
+        qs = self.queryset_base.annotate(
+            num_filhos=Count('membros', filter=Q(membros__cod_parentesco_rf_pessoa=3))
+        )
+        if num_filhos >= 5:
+            return qs.filter(num_filhos__gte=5)
+        return qs.filter(num_filhos=num_filhos)
+
+    def get_familias_para_exportacao(self, categoria: str) -> QuerySet:
+        """
+        Retorna queryset de famílias para uma categoria específica (para exportação).
+        
+        Args:
+            categoria: Uma de 'maes_solo', 'unipessoa', 'casal_sem_filho', '2', '3', '4', '5+'
+        
+        Returns:
+            QuerySet de Familia com select_related para RF
+        """
+        if categoria == 'maes_solo':
+            qs = self._get_maes_solo_queryset()
+        elif categoria == 'unipessoa':
+            qs = self._get_unipessoa_queryset()
+        elif categoria == 'casal_sem_filho':
+            qs = self._get_casal_sem_filho_queryset()
+        elif categoria in ['2', '3', '4']:
+            qs = self._get_filhos_queryset(int(categoria))
+        elif categoria == '5+':
+            qs = self._get_filhos_queryset(5)
+        elif categoria == 'todas':
+            qs = self.queryset_base
+        else:
+            qs = self.queryset_base.none()
+        
+        # Anotar status de validação para exportação
+        return qs.annotate(
+            has_aprovada=Exists(Validacao.objects.filter(familia_id=OuterRef('pk'), status='aprovado')),
+            has_reprovada=Exists(Validacao.objects.filter(familia_id=OuterRef('pk'), status='reprovado')),
+        ).prefetch_related('membros')
